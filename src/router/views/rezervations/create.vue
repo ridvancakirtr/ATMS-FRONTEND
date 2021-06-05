@@ -143,10 +143,12 @@ export default {
       newVehicleTypes:[],
       newAgencies:[],
       oneTimeAddPassangertoList:true,
+      welcomeDetails:{
+        location2:null,
+        location:null,
+        airport:null
+      }
       
-      location2:null,
-      location:null,
-      airport:null
     };
   },
   watch:{ 
@@ -233,6 +235,7 @@ export default {
       }
     },
     airport(value){
+      console.log(value)
       if(this.rezervation.transferDirection==0){
         if(value!=null){
           this.rezervation.startPoint=value.airport.name +"/" +value.airport.cityName;
@@ -260,9 +263,9 @@ export default {
       this.rezervation.isReturn=value
     },
     "rezervation.transferDirection"(){
-      this.location2=null,
-      this.location=null,
-      this.airport=null
+      this.welcomeDetails.location2=null,
+      this.welcomeDetails.location=null,
+      this.welcomeDetails.airport=null
     }
   },
   computed: {
@@ -780,7 +783,7 @@ export default {
                 <div class="col-sm-6">
                   <label for="airportArray_0" class="control-label">Başlangıç Noktası</label>
                   <multiselect 
-                    v-model="airport" 
+                    v-model="welcomeDetails.airport" 
                     :options="this.airportArray"
                     :searchable="true"
                     id="airportArray_0"
@@ -789,7 +792,6 @@ export default {
                     selectLabel="Seçiniz"
                     deselectLabel="Seçimi Kaldır"
                     selectedLabel="Seçilen"
-
                     :class="{
                     'is-invalid': formsubmit && $v.welcomeDetails.airport.$error,
                     }">
@@ -802,7 +804,7 @@ export default {
                 <div class="col-sm-6">
                   <label for="locationArray_0" class="control-label">Bitiş Noktası</label>
                   <multiselect 
-                    v-model="location" 
+                    v-model="welcomeDetails.location" 
                     :options="this.locationArray"
                     :searchable="true"
                     group-values="location"
@@ -828,7 +830,7 @@ export default {
                 <div class="col-sm-6">
                   <label for="locationArray_1" class="control-label">Bitiş Noktası</label>
                   <multiselect 
-                    v-model="location" 
+                    v-model="welcomeDetails.location" 
                     :options="this.locationArray"
                     :searchable="true"
                     group-values="location"
@@ -851,7 +853,7 @@ export default {
                 <div class="col-sm-6">
                   <label for="airportArray_1" class="control-label">Başlangıç Noktası</label>
                   <multiselect 
-                    v-model="airport" 
+                    v-model="welcomeDetails.airport" 
                     :options="this.airportArray"
                     :searchable="true"
                     id="airportArray_1"
@@ -876,7 +878,7 @@ export default {
                 <div class="col-sm-6">
                   <label for="locationArray_2" class="control-label">Başlangıç Noktası</label>
                   <multiselect 
-                    v-model="location" 
+                    v-model="welcomeDetails.location" 
                     :options="this.locationArray"
                     :searchable="true"
                     group-values="location"
@@ -899,7 +901,7 @@ export default {
                 <div class="col-sm-6">
                   <label for="locationArray_22" class="control-label">Bitiş Noktası</label>
                   <multiselect 
-                    v-model="location2" 
+                    v-model="welcomeDetails.location2" 
                     :options="this.locationArray"
                     :searchable="true"
                     group-values="location"
