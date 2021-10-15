@@ -6,7 +6,6 @@ import VuePhoneNumberInput from 'vue-phone-number-input';
 import 'vue-phone-number-input/dist/vue-phone-number-input.css';
 import DatePicker from "vue2-datepicker";
 import 'vue2-datepicker/locale/tr';
-
 import {
   required,
   maxLength,
@@ -52,7 +51,7 @@ export default {
         flightNumber:null,
         terminal:null,
         startDate:null,
-        endDate:null,
+        returnDate:null,
         agency:null,
         vehicleType:null,
         directionPrice:null,
@@ -151,7 +150,20 @@ export default {
       
     };
   },
-  watch:{ 
+  watch:{
+    pickUpTime(value){
+      this.updateStartDateTime({type:"time",value})
+    },
+    pickUpDate(value){
+      this.updateStartDateTime({type:"date",value})
+    },
+
+    dropOffTime(value){
+      this.updateReturnDateTime({type:"time",value})
+    },
+    dropOffDate(value){
+      this.updateReturnDateTime({type:"date",value})
+    },
     async results(a){
       
       this.customer.phone.countryCode=a.countryCode
@@ -289,10 +301,36 @@ export default {
     }
   },
   methods: {
+    updateStartDateTime({type,value}){
+      if(type=="time"){
+        this.rezervation.startDate.setHours(value.split(":")[0]);
+        this.rezervation.startDate.setMinutes(value.split(":")[1]);
+      }
+
+      if(type=="date"){
+        this.rezervation.startDate.setDate(value.getDate());
+        this.rezervation.startDate.setMonth(value.getMonth());
+        this.rezervation.startDate.setFullYear(value.getFullYear());
+      }
+    },
+    updateReturnDateTime({type,value}){
+      if(type=="time"){
+        this.rezervation.returnDate.setHours(value.split(":")[0]);
+        this.rezervation.returnDate.setMinutes(value.split(":")[1]);
+      }
+
+      if(type=="date"){
+        this.rezervation.returnDate.setDate(value.getDate());
+        this.rezervation.returnDate.setMonth(value.getMonth());
+        this.rezervation.returnDate.setFullYear(value.getFullYear());
+      }
+    },
     submitAddPaxForm() {
       this.addPaxSubmit = true;
       this.$v.$touch();
-      if (!this.$v.$invalid) {
+      console.log("girdi");
+      if (!this.$v.passangerList.$invalid) {
+         console.log("kaydetti");
           this.rezervation.pax.push(
           {
             tcknOrPassport:this.passangerList.tcknOrPassport,
@@ -301,18 +339,20 @@ export default {
             gender:this.passangerList.gender,
             nationality:this.passangerList.nationality,
           }
-        );
-        
+        );        
         
         this.passangerList={
-        tcknOrPassport: null,
-        name: null,
-        surname: null,
-        gender: null,
-        nationality:this.countries[7]
-      }
+          tcknOrPassport: null,
+          name: null,
+          surname: null,
+          gender: null,
+          nationality:this.countries[7]
+        }
         
         this.$v.$reset();
+      }else{
+        console.log("hata");
+        console.log(this.$v);
       }
     },
     countriesObject (value) {
@@ -416,7 +456,8 @@ export default {
     },
     submitForm() {
       this.formsubmit = true;
-      console.log("rezervasyon oluştur",this);
+
+      console.log("rezervasyon oluştur",this.rezervation);
       this.$v.$touch();
       if (!this.$v.$invalid) {
           console.log("Dalaman");
@@ -451,14 +492,6 @@ export default {
     rezervation:{
       flightNumber:{ required, maxLength: maxLength(50) },
       terminal:{ required, maxLength: maxLength(50) },
-      pickUpTime:{ required },
-      pickUpDate:{ required },
-      dropOffTime:{ required: requiredIf(function (value) {
-        return value.isReturn
-      })},
-      dropOffDate:{ required: requiredIf(function (value) {
-        return value.isReturn
-      })},
       vehicleType:{ required, maxLength: maxLength(50) },
       price:{ required, maxLength: maxLength(50) },
       uetds:{
@@ -469,7 +502,15 @@ export default {
       }), maxLength: maxLength(50) },
       priceCurrency:{ required },
       status:{ required }
-    }
+    },
+    pickUpTime:{ required },
+    pickUpDate:{ required },
+    dropOffTime:{ required: requiredIf(function (value) {
+      return value.isReturn
+    })},
+    dropOffDate:{ required: requiredIf(function (value) {
+      return value.isReturn
+    })},
 
   },
   async mounted() {
@@ -486,6 +527,8 @@ export default {
     this.setLocation();
     this.setAirport();
     this.isLoading=true
+    this.rezervation.startDate=new Date();
+    this.rezervation.returnDate=new Date();
   },
 };
 </script>
@@ -990,19 +1033,19 @@ export default {
                 <div class="col-sm-6">
                   <label>Alış Tarihi</label>
                     <date-picker format="DD-MM-YYYY" placeholder="Alış tarihi" v-model="pickUpDate" :first-day-of-week="1" lang="tr"
-                      :class="{'is-invalid': formsubmit && $v.rezervation.pickUpDate.$error}">
+                      :class="{'is-invalid': formsubmit && $v.pickUpDate.$error}">
                     </date-picker>
-                    <div v-if="formsubmit && $v.rezervation.pickUpDate.$error" class="invalid-feedback">
-                        <span v-if="!$v.rezervation.pickUpDate.required">Bu alan gereklidir.</span>
+                    <div v-if="formsubmit && $v.pickUpDate.$error" class="invalid-feedback">
+                        <span v-if="!$v.pickUpDate.required">Bu alan gereklidir.</span>
                     </div>
                 </div>
                 <div class="col-sm-6">
                   <label>Alış Saati</label>
                     <date-picker v-model="pickUpTime" format="hh:mm" value-type="format" type="time" placeholder="ss:dd"
-                    :class="{'is-invalid': formsubmit && $v.rezervation.pickUpTime.$error}"
+                    :class="{'is-invalid': formsubmit && $v.pickUpTime.$error}"
                     ></date-picker>
-                    <div v-if="formsubmit && $v.rezervation.pickUpTime.$error" class="invalid-feedback">
-                        <span v-if="!$v.rezervation.pickUpTime.required">Bu alan gereklidir.</span>
+                    <div v-if="formsubmit && $v.pickUpTime.$error" class="invalid-feedback">
+                        <span v-if="!$v.pickUpTime.required">Bu alan gereklidir.</span>
                     </div>
                 </div>
               </div>
@@ -1010,19 +1053,19 @@ export default {
                 <div class="col-sm-6">
                   <label>Dönüş Tarihi</label>
                     <date-picker format="DD-MM-YYYY" placeholder="Dönüş Tarihi" v-model="dropOffDate" :first-day-of-week="1" lang="tr"
-                      :class="{'is-invalid': formsubmit && $v.rezervation.dropOffDate.$error}">
+                      :class="{'is-invalid': formsubmit && $v.dropOffDate.$error}">
                     </date-picker>
-                    <div v-if="formsubmit && $v.rezervation.dropOffDate.$error" class="invalid-feedback">
-                        <span v-if="!$v.rezervation.dropOffDate.required">Bu alan gereklidir.</span>
+                    <div v-if="formsubmit && $v.dropOffDate.$error" class="invalid-feedback">
+                        <span v-if="!$v.dropOffDate.required">Bu alan gereklidir.</span>
                     </div>
                 </div>
                 <div class="col-sm-6">
                   <label>Dönüş Saati</label>
                     <date-picker v-model="dropOffTime" format="hh:mm" value-type="format" type="time" placeholder="ss:dd"
-                    :class="{'is-invalid': formsubmit && $v.rezervation.dropOffTime.$error}"
+                    :class="{'is-invalid': formsubmit && $v.dropOffTime.$error}"
                     ></date-picker>
-                    <div v-if="formsubmit && $v.rezervation.dropOffTime.$error" class="invalid-feedback">
-                        <span v-if="!$v.rezervation.dropOffTime.required">Bu alan gereklidir.</span>
+                    <div v-if="formsubmit && $v.dropOffTime.$error" class="invalid-feedback">
+                        <span v-if="!$v.dropOffTime.required">Bu alan gereklidir.</span>
                     </div>
                 </div>
               </div>
@@ -1048,7 +1091,7 @@ export default {
                             'is-invalid': addPaxSubmit && $v.passangerList.name.$error,
                           }"
                         />
-                        <div v-if="addPaxSubmit && !$v.passangerList.nationality.$error" class="invalid-feedback">
+                        <div v-if="addPaxSubmit && !$v.passangerList.name.$error" class="invalid-feedback">
                           <span v-if="!$v.passangerList.name.required">Bu alan gereklidir.</span>
                           <span v-if="!$v.passangerList.name.maxLength">Bu alana maksimum 50 karakter girilebilir.</span>
                         </div>
@@ -1070,9 +1113,9 @@ export default {
                               addPaxSubmit && $v.passangerList.surname.$error,
                           }"
                         />
-                        <div v-if="addPaxSubmit && !$v.passangerList.nationality.$error" class="invalid-feedback">
-                          <span v-if="!$v.passangerList.name.required">Bu alan gereklidir.</span>
-                          <span v-if="!$v.passangerList.name.maxLength">Bu alana maksimum 50 karakter girilebilir.</span>
+                        <div v-if="addPaxSubmit && !$v.passangerList.surname.$error" class="invalid-feedback">
+                          <span v-if="!$v.passangerList.surname.required">Bu alan gereklidir.</span>
+                          <span v-if="!$v.passangerList.surname.maxLength">Bu alana maksimum 50 karakter girilebilir.</span>
                         </div>
                       </div>
                     </div>
@@ -1350,7 +1393,7 @@ export default {
               <div class="table-responsive">
                 <table class="table mb-0">
                   <tbody>
-                    <tr>
+                    <tr v-if="!companyOwner">
                       <td>Yön Fiyatı :</td>
                       <td>$ 1,857</td>
                     </tr>
