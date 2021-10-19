@@ -38,6 +38,8 @@ export const todoComputed = {
 export const todoMethods = mapActions('todo', ['fetchTodos'])
 
 
+export const authenticationMethod = mapActions('authentication', ['login']);
+
 export const customerMethod = mapActions('customer', ['createCustomer', 'fetchCustomers', 'fetchCountries', 'updateCustomer', 'fetchCustomer']);
 
 export const employeeMethod = mapActions('employee', ['createEmployee', 'fetchEmployees', 'fetchCountries', 'fetchEmployee', 'updateEmployee']);
