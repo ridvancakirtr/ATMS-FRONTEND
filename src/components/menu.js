@@ -180,5 +180,18 @@ export const menuItems = [
             }
         ]
     },
+    {
+        id: 10,
+        label: "menuitems.settings.text",
+        icon: "mdi mdi-nix",
+        subItems: [
+            {
+                id: 1,
+                label: "menuitems.settings.list.list",
+                link: "/settings/taxation",
+                parentId: 9
+            }
+        ]
+    },
 ]
 

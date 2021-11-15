@@ -170,6 +170,13 @@
         "list": "Havalimanı Listesi"
       }
     },
+    "settings": {
+      "text": "Ayarlar",
+      "badge": "04",
+      "list": {
+        "list": "Vergilendirme"
+      }
+    },
     "layouts": {
       "text": "Layouts",
       "list": {

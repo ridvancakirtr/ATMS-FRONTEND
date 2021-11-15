@@ -232,6 +232,14 @@ export default [
     component: () => import('./views/rezervations/create'),
   },
   {
+    path: '/settings/taxation',
+    name: 'taxation',
+    meta: {
+      authRequired: true,
+    },
+    component: () => import('./views/settings/taxation'),
+  },
+  {
     path: '/login',
     name: 'login',
     meta: {
