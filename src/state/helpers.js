@@ -55,3 +55,5 @@ export const userMethod = mapActions('user', ['createUser','fetchUsers','fetchUs
 export const pointMethod = mapActions('point', ['fetchCities','createPoint','fetchPoints','fetchPoint','updatePoint']);
 
 export const airportMethod = mapActions('airport', ['fetchAirports','createAirport','fetchAirport','fetchUetdsAirports','updateAirport']);
+
+export const taxationMethod = mapActions('taxation', ['fetchTaxation','updateTaxation']);  

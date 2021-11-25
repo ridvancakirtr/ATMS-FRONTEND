@@ -181,7 +181,7 @@ export const menuItems = [
         ]
     },
     {
-        id: 10,
+        id: 12,
         label: "menuitems.settings.text",
         icon: "mdi mdi-nix",
         subItems: [
@@ -189,7 +189,7 @@ export const menuItems = [
                 id: 1,
                 label: "menuitems.settings.list.list",
                 link: "/settings/taxation",
-                parentId: 9
+                parentId: 12
             }
         ]
     },
