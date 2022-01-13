@@ -176,7 +176,7 @@ export default {
   async mounted() {
     await this.fetchCountries()
     this.isLoading=true
-    this.form.nationality=this.countries[3]
+    this.form.nationality=this.countries[6]
   },
 };
 </script>

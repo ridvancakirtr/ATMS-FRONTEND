@@ -1,22 +1,22 @@
-function calPrice(price, taxation, taxationtype, taxationrate, isOneway) {
+export function calPrice(price, taxation, taxationtype, taxationrate, isOneway) {
     let taxrate, tax, total, subtotal;
-    if (isOneway == 0) {
+    if (isOneway == false) {
         subtotal = parseFloat(price);
-    } else if (isOneway == 1) {
+    } else if (isOneway == true) {
         subtotal = parseFloat(price) * 2;
     }
 
-    if (taxation == 1) {
+    if (taxation == true) {
         taxrate = "0." + taxationrate;
         tax = parseFloat(subtotal * taxrate);
-        if (taxationtype == 0) {
+        if (taxationtype == true) {
             total = subtotal + tax;
             return {
                 "subtotal": subtotal,
                 "tax": tax,
                 "total": total
             };
-        } else if (taxationtype == 1) {
+        } else if (taxationtype == false) {
             total = subtotal - tax;
             return {
                 "subtotal": total,
@@ -25,7 +25,7 @@ function calPrice(price, taxation, taxationtype, taxationrate, isOneway) {
             };
         }
 
-    } else if (taxation == 0) {
+    } else if (taxation == false) {
         return {
             "subtotal": subtotal,
             "tax": 0,
@@ -34,4 +34,4 @@ function calPrice(price, taxation, taxationtype, taxationrate, isOneway) {
     }
 }
 
-console.log(calPrice(125, 1, 0, 18, 0));
+//console.log(calPrice(125, true, false, 18, 0));

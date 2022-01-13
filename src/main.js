@@ -23,6 +23,9 @@ import { configureFakeBackend } from './helpers/fake-backend';
 
 import tinymce from 'vue-tinymce-editor'
 
+// Filters
+import './filters/filters.js'
+
 const firebaseConfig = {
   apiKey: process.env.VUE_APP_APIKEY,
   authDomain: process.env.VUE_APP_AUTHDOMAIN,
@@ -59,8 +62,8 @@ Vue.use(VueGoogleMaps, {
   },
   installComponents: true
 })
-Vue.component('apexchart', VueApexCharts)
 
+Vue.component('apexchart', VueApexCharts)
 new Vue({
   router,
   store,

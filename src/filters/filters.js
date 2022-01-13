@@ -1,7 +1,5 @@
 import Vue from 'vue'
 
-Vue.filter('formatShortDate', function (value) {
-  if (value) {
-    return moment(String(value)).format('DD-MM-YYYY')
-  }
+Vue.filter('priceFormat', function (value) {
+   return parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 })
