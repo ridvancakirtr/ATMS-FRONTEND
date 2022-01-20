@@ -23,7 +23,9 @@ import {
   pointMethod,
   airportMethod,
   taxationMethod,
-  employeeMethod
+  employeeMethod,
+  vehicleMethod,
+  rezervationMethod
 } from "@/state/helpers";
 
 /**
@@ -52,8 +54,8 @@ export default {
       employessArray:[],
       airportArray:[],
       terminals:['İç Hatlar','Dış Hatlar'],
-      statusVariables:['Ödendi','Ödenmedi'],
-      transferType:[{id:0,value:"Alından Transfer"},{id:1,value:'Yönlendirilen Transfer'}],
+      statusVariables:[{id:1,value:"Ödendi"},{id:0,value:"Ödenmedi"}],
+      transferTypeArray:[{id:1,value:"Alından Transfer"},{id:2,value:'Yönlendirilen Transfer'}],
       priceCurrency:[
         {
           id:0,
@@ -79,13 +81,22 @@ export default {
       isLoading:false,
       addPaxSubmit: false,
       formsubmit: false,
-      results:null,
+      customerSearchResult:null,
       customerIsAvalible:false,
       companyOwner:true,
       newVehicleTypes:[],
       newAgencies:[],
+      tempAgency:null,
+      tempVehicle:null,
+      tempPriceCurrencySelected:null,
+      tempStatus:null,
       tempEmployess:[],
       tempVehicleType:null,
+      tempTransferType:null,
+      tempPickUpTime:'09:00',
+      tempDropOffTime:'09:00',
+      tempUetdsPrice:null,
+      tempDirectionPrice:null,
       foundCustomerId:null,
       oneTimeAddPassangertoList:true,
       passangerList:{
@@ -98,18 +109,12 @@ export default {
           countryName: null
         },
       },
-
-      priceCurrencySelected:{
-          id:0,
-          text:'TÜRK LİRASI',
-          symbol:'₺',
-      },
       formVariables:{
         agency:null,
         vehicleType:null,
         uetdsPrice:null,
         rezervationPrice:null,
-        directionPrice:0,
+        directionPrice:null,
         flightNumber:null,
         transferDirection:0,
         startPoint:null,
@@ -128,6 +133,8 @@ export default {
         wheelSeat: 0,
         smsNotification:false,
         uetdsNotification:false,
+        priceCurrency:0,
+        vehicle:null,
         customer: {
           tcknOrPassport: null,
           name: null,
@@ -145,37 +152,34 @@ export default {
             countryName: null
           },
         },
-        employees:[],
+        employees:null,
         pax:[],
         price:{
           subtotal: 0, 
           tax: 0, 
           total: 0
         },
-        uetds:{
-          status: false,
-          price:null,
-          refNumber: null,
-          baslangicUlke: null,
-          baslangicIl: null,
-          baslangicIlce: null,
-          bitisUlke: null,
-          bitisIl: null,
-          bitisIlce: null
-        },
+        uetdsStatus:false,
         note:null,
       }
     };
     
   },
   watch:{
-    'formVariables.pickUpTime'(value){
+    tempVehicle(value){
+      if(value!=null){
+        this.formVariables.vehicle=value._id
+      }else{
+        this.formVariables.vehicle=null
+      }
+    },
+    tempPickUpTime(value){
       this.updateStartDateTime({type:"time",value})
     },
     'formVariables.pickUpDate'(value){
       this.updateStartDateTime({type:"date",value})
     },
-    'formVariables.dropOffTime'(value){
+    tempDropOffTime(value){
       this.updateReturnDateTime({type:"time",value})
     },
     'formVariables.dropOffDate'(value){
@@ -196,35 +200,55 @@ export default {
     'formVariables.rezervationPrice'(value){
       if (value=='') {
         this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
-        console.log(`vergi calprice`,this.formVariables);
+        //console.log(`vergi calprice`,this.formVariables);
       } else {
         this.formVariables.price=Taxation.calPrice(value, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
-        console.log(`vergi calprice`,this.formVariables);
+        //console.log(`vergi calprice`,this.formVariables);
       }
     },
-    'formVariables.uetdsPrice'(value){
-      if (value=='') {
-        this.formVariables.uetds.price=0
-      } else {
-        this.formVariables.uetds.price=value
+    'formVariables.uetdsNotification'(value){
+      if (!value) {
+        this.tempUetdsPrice=null
+        this.formVariables.uetdsPrice=null
       }
     },
-    'formVariables.priceCurrencySelected'(value){
-      console.log(value);
-      this.formVariables.priceCurrency=value.id
-    },
-    'formVariables.directionPrice'(value){
+    tempUetdsPrice(value){
       if (value=='') {
-        this.formVariables.directionPrice=0
+        this.formVariables.uetdsPrice=null
       } else {
-        this.formVariables.directionPrice=value
+        this.formVariables.uetdsPrice=parseFloat(value);
+      }
+    },
+    tempDirectionPrice(value){
+      if (value=='') {
+        this.formVariables.directionPrice=null
+      } else {
+        this.formVariables.directionPrice=parseFloat(value);
       }
     },
     'formVariables.flightNumber'(value){
       this.formVariables.flightNumber=value
     },
-    'tempVehicleType'(value){
-      this.formVariables.vehicleType=value.name + ' - ' + value.pax +' Kişi'
+    tempVehicleType(value){
+      if(value!=null){
+        this.formVariables.vehicleType=value.name + ' - ' + value.pax +' Kişi'
+      }else{
+        this.formVariables.vehicleType=null
+      }
+    },
+    tempPriceCurrencySelected(value){
+      if(value!=null){
+        this.formVariables.priceCurrency=value.id
+      }else{
+        this.formVariables.priceCurrency=null
+      }
+    },
+    tempStatus(value){
+      if(value!=null){
+        this.formVariables.status=value.id
+      }else{
+        this.formVariables.status=null
+      }
     },
     tempEmployess(){
       let temp=[]
@@ -233,8 +257,13 @@ export default {
       })
       this.formVariables.employees=temp
     },
-    async results(a){
-      console.log(a)
+    tempTransferType(value){
+      if(value!=null){
+        this.formVariables.transferType=value.id
+      }
+    },
+    async customerSearchResult(a){
+      //console.log(a)
       this.formVariables.customer.phone.countryCode=a.countryCode
       this.formVariables.customer.phone.nationalNumber=a.nationalNumber
       this.formVariables.customer.phone.countryCallingCode=a.countryCallingCode
@@ -244,7 +273,7 @@ export default {
       await this.fetchCustomers({page:"",limit:10,search:a.formattedNumber})
       
       if(this.$store.state.customer.customers.data[0]!=undefined){
-        console.log('bulundu')
+        //console.log('bulundu')
         this.customerIsAvalible=true
 
         this.formVariables.customer.tcknOrPassport=null
@@ -277,7 +306,7 @@ export default {
         }
 
       }else{
-        console.log('bulundumadi')
+        //console.log('bulundumadi')
         this.foundCustomerId=null
         this.formVariables.customer.tcknOrPassport=null
         this.formVariables.customer.name=null
@@ -292,9 +321,30 @@ export default {
 
         this.setCustomerNationality();
       }
-    }
+    },
+    tempAgency(value){
+      if(value!=null){
+        this.formVariables.agency=value._id
+        //console.log(this.formVariables.agency);
+        if(value.companyOwner){
+          this.companyOwner=true
+          this.formVariables.transferType=0
+          this.formVariables.directionPrice=null
+          this.tempDirectionPrice=null
+          this.tempTransferType=null
+        }else{
+          this.tempTransferType=this.transferTypeArray[0]
+          this.companyOwner=false
+        }
+      }else{
+        this.formVariables.agency=null
+      }
+    },
   },
   computed: {
+    vehicles(){
+      return this.$store.state.vehicle.vehicles.data
+    },
     countries(){
       return this.$store.state.customer.countries
     },
@@ -325,24 +375,26 @@ export default {
   },
   methods: {
     updateStartDateTime({type,value}){
-      if(type=="time"){
+      if(type=="time" & value!=null){
         this.formVariables.pickUpTime.setHours(value.split(":")[0]);
         this.formVariables.pickUpTime.setMinutes(value.split(":")[1]);
       }
 
       if(type=="date"){
+        this.formVariables.pickUpDate.setHours(0, 0, 0, 0);
         this.formVariables.pickUpDate.setDate(value.getDate());
         this.formVariables.pickUpDate.setMonth(value.getMonth());
         this.formVariables.pickUpDate.setFullYear(value.getFullYear());
       }
     },
     updateReturnDateTime({type,value}){
-      if(type=="time"){
+      if(type=="time" & value!=null){
         this.formVariables.dropOffTime.setHours(value.split(":")[0]);
         this.formVariables.dropOffTime.setMinutes(value.split(":")[1]);
       }
 
       if(type=="date"){
+        this.formVariables.dropOffDate.setHours(0, 0, 0, 0);
         this.formVariables.dropOffDate.setDate(value.getDate());
         this.formVariables.dropOffDate.setMonth(value.getMonth());
         this.formVariables.dropOffDate.setFullYear(value.getFullYear());
@@ -351,7 +403,7 @@ export default {
     submitAddPaxForm() {
       this.addPaxSubmit = true;
       this.$v.passangerList.$touch();
-      console.log("girdi");
+      //console.log("girdi");
       if (!this.$v.passangerList.$invalid) {
           this.formVariables.pax.push(
           {
@@ -370,11 +422,11 @@ export default {
           gender: null,
           nationality:this.countries[7]
         }
-        console.log("kaydetti--");
+        //console.log("kaydetti--");
         this.$v.passangerList.$reset();
       }else{
-        console.log("hata");
-        console.log(this.$v.passangerList);
+        //console.log("hata");
+        //console.log(this.$v.passangerList);
       }
     },
     countriesObject (value) {
@@ -401,31 +453,19 @@ export default {
     setOwnerAgency(){
       this.agencies.forEach(element => {
           if(element.companyOwner){
-            this.formVariables.agency=element
+            this.tempAgency=element
           }
       });
-    },
-    selectedAgency(value){
-      this.formVariables.agency=value._id
-      if(value.companyOwner){
-        this.companyOwner=true
-      }else{
-        this.companyOwner=false
-      }
-    },
-    selectedTransferType(value){
-      this.formVariables.transferType=value._id
-    },
-    setTransferType(){
-      this.formVariables.transferType=this.transferType[0]
     },
     setCustomerNationality(){
       this.formVariables.customer.nationality=this.countries[6]
       this.passangerList.nationality=this.countries[6]
     },
     vehicleTypesObject (value) {
-      console.log(value)
       return `${value.name} - ${value.pax}`
+    },
+    transferTypesObject (value) {
+      return `${value.value}`
     },
     locationObject({point,hotel,city}){
       if(hotel==undefined){
@@ -440,17 +480,17 @@ export default {
     employessTypesObject ({name,surname}) {
       return `${name} ${surname}`
     },
-    transferTypeObject({ value }){
-      return value
+    vehiclesTypesObject ({brand,model,plate}) {
+      return `${plate} - ${brand} ${model}`
     },
     setVehicleTypes(){
       this.newVehicleTypes=this.vehicleTypes;
     },
-    selectedPriceCurrency(value){
-      this.formVariables.priceCurrency=value.id
-    },
     priceCurrencyObject({text,symbol}){
       return `${text} ${symbol}`
+    },
+    statusVariablesObject({value}){
+      return `${value}`
     },
     setAgencies(){
       this.newAgencies=this.agencies;
@@ -459,7 +499,6 @@ export default {
       let tempOtel=[]
       let tempKonum=[]
       this.points.forEach(element => {
-        console.log('element',element)
         if(element.type=="Otel"){
             tempOtel.push({point:element.point,hotel: element.hotel, city:[element.city]});
         }
@@ -484,7 +523,6 @@ export default {
       let tempDiger=[]
       let tempRehber=[]
       this.employees.data.forEach(element => {
-        console.log(element)
         if(element.type==0){
           tempSofor.push({name:element.name,surname:element.surname,id:element._id})
         }
@@ -532,25 +570,63 @@ export default {
     removePax(index){
       this.formVariables.pax.splice(index,  1);
     },
+    scrollToTop() {
+      window.scrollTo(0,0);
+    },
     async submitForm() {
-  
-      let rezervationForm={
-        agency:this.formVariables.agency._id,
-        transferType:this.formVariables.transferType.id,
-        vehicleType:this.formVariables.vehicleType,
-        employees:this.formVariables.employees,
-        customer:null
-      }
 
-      if(!this.customerIsAvalible){
-        await this.createCustomer(this.formVariables.customer);
-        rezervationForm.customer=this.customer._id;
-      }else{
-        rezervationForm.customer=this.foundCustomerId;
-      }
+      this.formsubmit = true;
+      this.$v.formVariables.$touch();
+      if (!this.$v.formVariables.$invalid) {
+        let rezervationForm={
+          agency:this.formVariables.agency,
+          transferType:this.formVariables.transferType,
+          vehicleType:this.formVariables.vehicleType,
+          employees:this.formVariables.employees,
+          customer:null,
+          transferDirection:this.formVariables.transferDirection,
+          startPoint:this.formVariables.startPoint,
+          endPoint:this.formVariables.endPoint,
+          flightNumber:this.formVariables.flightNumber,
+          terminal:this.formVariables.terminal,
+          isReturn:this.formVariables.isReturn,
+          pickUpDate:this.formVariables.pickUpDate,
+          pickUpTime:this.formVariables.pickUpTime,
+          dropOffDate:this.formVariables.dropOffDate,
+          dropOffTime:this.formVariables.dropOffTime,
+          babySeat:this.formVariables.babySeat,
+          childSeat:this.formVariables.childSeat,
+          wheelSeat:this.formVariables.wheelSeat,
+          pax:this.formVariables.pax,
+          note:this.formVariables.note,
+          vehicle:this.formVariables.vehicle,
+          smsNotification:this.formVariables.smsNotification,
+          uetdsNotification:this.formVariables.uetdsNotification,
+          price:this.formVariables.price.subtotal,
+          uetdsPrice:this.formVariables.uetdsPrice,
+          directionPrice:this.formVariables.directionPrice,
+          priceCurrency:this.formVariables.priceCurrency,
+          status:this.formVariables.status,
+          uetdsStatus:this.formVariables.uetdsStatus,
+        }
 
-      console.log(rezervationForm)
-      
+        if(!this.customerIsAvalible){
+          await this.createCustomer(this.formVariables.customer);
+          rezervationForm.customer=this.customer._id;
+          if(this.$store.state.customer.notification.status){
+            //console.log(rezervationForm)
+            await this.createRezervation(rezervationForm);
+            //console.log(this.$store.state.rezervation.rezervation);
+            this.scrollToTop();
+          }
+        }else{
+          //console.log(rezervationForm)
+          rezervationForm.customer=this.foundCustomerId;
+          await this.createRezervation(rezervationForm);
+          //console.log(this.$store.state.rezervation.rezervation);
+          this.scrollToTop();
+        }
+      }
     },
     updatePassengerList(){
       if(!this.customerIsAvalible){
@@ -563,13 +639,18 @@ export default {
         }
       }
     },
+    setPriceCurrency(){
+      this.tempPriceCurrencySelected=this.priceCurrency[0];
+    },
     ...employeeMethod,
     ...agencyMethod,
     ...vehicleTypeMethod,
     ...pointMethod,
     ...airportMethod,
     ...taxationMethod,
-    ...customerMethod
+    ...customerMethod,
+    ...vehicleMethod,
+    ...rezervationMethod
   },
   validations: {
     passangerList: {
@@ -580,6 +661,7 @@ export default {
       nationality: { required }
     },
     formVariables:{
+      agency:{ required },
       customer: {
         tcknOrPassport: { required,minLength: minLength(7), maxLength: maxLength(11) },
         name: { required, maxLength: maxLength(50) },
@@ -591,24 +673,34 @@ export default {
       endPoint:{ required },
       phoneNumber: { required, maxLength: maxLength(50) },
       terminal:{ required },
-      tempVehicleType:{ required, maxLength: maxLength(50) },
+      vehicleType:{ required},
       priceCurrency:{ required },
       status:{ required },
+      transferType:{ required: requiredIf(function () {
+          return !this.companyOwner
+      })},
       directionPrice:{ required: requiredIf(function () {
           return !this.companyOwner
       }), maxLength: maxLength(50) },
       pickUpTime:{ required },
       pickUpDate:{ required },
       dropOffTime:{ required: requiredIf(function (value) {
-        console.log(`..........`,value);
         return value.isReturn
       })},
+      
       dropOffDate:{ required: requiredIf(function (value) {
-        console.log(`..........`,value);
         return value.isReturn
+      })},
+      employees:{ required: requiredIf(function (value) {
+        return value.uetdsNotification
+      })},
+      vehicle:{ required: requiredIf(function (value) {
+        return value.uetdsNotification
       })},
       rezervationPrice:{ required, maxLength: maxLength(50) },
-      uetdsPrice:{ required, maxLength: maxLength(50) },
+      uetdsPrice:{ required: requiredIf(function (value) {
+        return value.uetdsNotification
+      }), maxLength: maxLength(50) },
       flightNumber:{ required, maxLength: maxLength(50) },
       note:{ maxLength: maxLength(255) },
     }
@@ -620,19 +712,30 @@ export default {
     await this.fetchVehicleTypes({page:1,limit:1000,search:""})
     await this.fetchPoints({page:1,limit:1000,search:""})
     await this.fetchAirports({page:1,limit:1000,search:""})
+    await this.fetchVehicles({page:1,limit:1000,search:""})
     await this.fetchCountries()
+    this.setPriceCurrency();
     this.setOwnerAgency();
     this.setCustomerNationality();
     this.setVehicleTypes();
     this.setAgencies();
-    this.setTransferType();
     this.setLocation();
     this.setAirport();
-    this.setEmployess();
-    this.isLoading=true
-    //this.formVariables.vehicleType=this.vehicleTypes[0];
+    this. setEmployess();
+
+    var timeDropOffTime=new Date()
+    timeDropOffTime.setHours(9,0,0)
+
+    var timePickUpTime=new Date()
+    timePickUpTime.setHours(9,0,0)
+
     this.formVariables.pickUpDate=new Date();
-    this.formVariables.dropOffDate=new Date();
+    this.formVariables.pickUpTime=timePickUpTime
+
+    this.formVariables.dropOffDate=new Date()
+    this.formVariables.dropOffTime=timeDropOffTime
+
+    this.isLoading=true
   },
 
 }
@@ -641,48 +744,69 @@ export default {
 <template>
   <Layout>
     <PageHeader :title="title" :items="items" />
-      <div class="row">
+      <div class="row" v-if="!isLoading">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-center">
+              <b-spinner v-if="!isLoading" type="grow" class="m-2" variant="primary" role="status"></b-spinner>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" v-if="isLoading">
+
         <div class="col-lg-12">
+          <b-alert show dismissible variant="success" v-if="this.$store.state.rezervation.notification.status==true">
+          <i class="mdi mdi-check-all me-2"></i>{{this.$store.state.rezervation.notification.message}}
+        </b-alert>
+
+        <b-alert show dismissible variant="danger" v-if="this.$store.state.rezervation.notification.status==false">
+          <i class="mdi mdi-close-circle-outline me-2"></i>{{this.$store.state.rezervation.notification.message}}
+        </b-alert>
+
+        <b-alert show dismissible variant="success" v-if="this.$store.state.customer.notification.status==true">
+          <i class="mdi mdi-check-all me-2"></i>{{this.$store.state.customer.notification.message}}
+        </b-alert>
+
+        <b-alert show dismissible variant="danger" v-if="this.$store.state.customer.notification.status==false">
+          <i class="mdi mdi-close-circle-outline me-2"></i>{{this.$store.state.customer.notification.message}}
+        </b-alert>
+          
+        </div>
+
+        <div class="col-lg-12">
+
           <div class="card">
             <div class="card-body">
               <h4 class="card-title mb-2">Transfer Detayları</h4>
                   <div class="row">
-                    <div class="col-sm-6 mt-2">
+                    <div class="col-sm-4 mt-2">
                       <label for="authorizedPhone">Agenta Seçimi</label>
                       <multiselect 
-                          v-model="formVariables.agency" 
+                          v-model="tempAgency" 
                           :options="this.newAgencies"
                           :searchable="true"
                           :custom-label="agencyObject"
-                          @select="selectedAgency"
                           placeholder="Seçiniz"
                           selectLabel="Seçiniz"
                           deselectLabel="Seçimi Kaldır"
-                          selectedLabel="Seçilen">
+                          selectedLabel="Seçilen"
+                          :class="{
+                                'is-invalid':
+                                  formsubmit && $v.formVariables.agency.$error,
+                              }">
                           <span slot="noResult">Oops! Öğe bulunamadı. Arama sorgusunu değiştirmeyi deneyin.</span>
                       </multiselect>
+                        <div v-if="formsubmit && $v.formVariables.agency.$error" class="invalid-feedback">
+                          <span v-if="!$v.formVariables.agency.required">Bu alan gereklidir.</span>
+                        </div>
                     </div>
-                    <div class="col-sm-6 mt-2">
-                      <label for="authorizedPhone">Transfer Tipi</label>
+                    
+                    <div class="col-sm-4 mt-2">
+                      <label for="tempVehicleType">Araç Tipi</label>
                       <multiselect 
-                          id="transferType"
-                          v-model="formVariables.transferType" 
-                          :options="this.transferType"
-                          :custom-label="transferTypeObject"
-                          :searchable="true"
-                          @select="selectedTransferType"
-                          :disabled="companyOwner"
-                          placeholder="Seçiniz"
-                          selectLabel="Seçiniz"
-                          deselectLabel="Seçimi Kaldır"
-                          selectedLabel="Seçilen">
-                          <span slot="noResult">Oops! Öğe bulunamadı. Arama sorgusunu değiştirmeyi deneyin.</span>
-                      </multiselect>
-                    </div>
-                    <div class="col-sm-6 mt-2">
-                      <label for="authorizedPhone">Araç Tipi</label>
-                      <multiselect 
-                            id="vehicleTypes"
+                            id="tempVehicleType"
                             v-model="tempVehicleType" 
                             :options="this.newVehicleTypes"
                             :custom-label="vehicleTypesObject"
@@ -692,46 +816,37 @@ export default {
                             deselectLabel="Seçimi Kaldır"
                             selectedLabel="Seçilen"
                             :class="{
-                            'is-invalid':
-                              formsubmit && $v.formVariables.vehicleType.$error,
+                                'is-invalid':
+                                  formsubmit && $v.formVariables.vehicleType.$error,
                             }"
                             >
                             <span slot="noResult">Oops! Öğe bulunamadı. Arama sorgusunu değiştirmeyi deneyin.</span>
                         </multiselect>
+                        <div v-if="formsubmit && $v.formVariables.vehicleType.$error" class="invalid-feedback">
+                          <span v-if="!$v.formVariables.vehicleType.required">Bu alan gereklidir.</span>
+                        </div>
                     </div>
-                    <div class="col-sm-6 mt-2">
-                      <label for="authorizedPhone">Şoför ve Diğer Personeller</label>
+                    
+                    <div class="col-sm-4 mt-2">
+                      <label for="tempTransferType">Transfer Tipi</label>
                       <multiselect 
-                            id="vehicleTypes"
-                            v-model="tempEmployess" 
-                            :options="this.employessArray"
-                            :custom-label="employessTypesObject"
-                            :searchable="true"
-                            :multiple="true"
-                            track-by="id"
-                            open-direction="bottom"
-                            group-values="employees"
-                            group-label="type"
+                            id="tempTransferType"
+                            v-model="tempTransferType" 
+                            :options="this.transferTypeArray"
+                            :custom-label="transferTypesObject"
+                            :disabled="companyOwner"
+                            :allow-empty="false"
+                            :show-labels="false"
                             placeholder="Seçiniz"
                             selectLabel="Seçiniz"
                             deselectLabel="Seçimi Kaldır"
-                            selectedLabel="Seçilen"
-                            :class="{
-                            'is-invalid':
-                              formsubmit && $v.formVariables.vehicleType.$error,
-                            }"
-                            >
+                            selectedLabel="Seçilen">
                             <span slot="noResult">Oops! Öğe bulunamadı. Arama sorgusunu değiştirmeyi deneyin.</span>
                         </multiselect>
                     </div>
                   </div>
               </div>
           </div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-lg-12">
 
           <div class="card">
             <div class="card-body">
@@ -743,7 +858,7 @@ export default {
               <div class="row">
                 <div class="col-sm-6 mt-2">
                     <label for="authorizedPhone">Müşteri Telefon No</label>
-                    <VuePhoneNumberInput position="top" size="sm" id="authorizedPhone" default-country-code="TR" v-model="formVariables.phoneNumber" @update="results = $event"
+                    <VuePhoneNumberInput position="top" size="sm" id="authorizedPhone" default-country-code="TR" v-model="formVariables.phoneNumber" @update="customerSearchResult = $event"
                     :translations="{
                       countrySelectorLabel: 'Ülke Kodu',
                       countrySelectorError: 'Ülke Kodu Seçiniz',
@@ -855,6 +970,7 @@ export default {
                       <multiselect 
                         v-model="formVariables.customer.nationality" 
                         :options="this.countries"
+                        :disabled="customerIsAvalible"
                         :searchable="true"
                         placeholder="Seçiniz"
                         selectLabel="Seçiniz"
@@ -1130,9 +1246,8 @@ export default {
                 </div>
                 <div class="col-sm-6 mt-2">
                   <label>Alış Saati</label>
-                    <date-picker v-model="formVariables.pickUpTime" format="hh:mm" value-type="format" type="time" placeholder="ss:dd"
-                    :class="{'is-invalid': formsubmit && $v.formVariables.pickUpTime.$error}"
-                    ></date-picker>
+                    <date-picker sync="false" id="pickUpTime" v-model="tempPickUpTime" format="HH:mm" value-type="format" type="time" placeholder="ss:dd"
+                    :class="{'is-invalid': formsubmit && $v.formVariables.pickUpTime.$error}"></date-picker>
                     <div v-if="formsubmit && $v.formVariables.pickUpTime.$error" class="invalid-feedback">
                         <span v-if="!$v.formVariables.pickUpTime.required">Bu alan gereklidir.</span>
                     </div>
@@ -1151,7 +1266,7 @@ export default {
                 </div>
                 <div class="col-sm-6 mt-2">
                   <label>Dönüş Saati</label>
-                    <date-picker v-model="formVariables.dropOffTime" format="hh:mm" value-type="format" type="time" placeholder="ss:dd"
+                    <date-picker id="dropOffTime" v-model="tempDropOffTime" format="HH:mm" value-type="format" type="time" placeholder="ss:dd"
                     :class="{'is-invalid': formsubmit && $v.formVariables.dropOffTime.$error}"
                     ></date-picker>
                     <div v-if="formsubmit && $v.formVariables.dropOffTime.$error" class="invalid-feedback">
@@ -1371,29 +1486,88 @@ export default {
             <div class="card-body">
                 <h4 class="card-title mb-4">Bildirimler</h4>
                 <div class="row">
-                  <div class="col-sm-6">
-                    <div class="col-sm-6">
-                      <div class="form-check form-switch form-switch-md mb-3">
-                        <input class="form-check-input" v-model="formVariables.smsNotification" type="checkbox" id="sms"/>
-                        <label class="form-check-label" for="sms">SMS</label>
+                  <div class="col-sm-6 mt-2">
+                    <label class="card-radio-label mb-2">
+                      <input type="checkbox" id="oneDirection" v-model="formVariables.smsNotification" class="card-radio-input" checked/>
+                      <div class="card-radio">
+                        <i class="mdi mdi-email-outline font-size-24 text-primary align-middle me-2"></i>
+                        <span>SMS</span>
                       </div>
+                    </label>
                   </div>
-                  </div>
-                   <div class="col-sm-6">
-                      <div class="form-check form-switch form-switch-md mb-3">
-                        <input class="form-check-input" v-model="formVariables.uetdsNotification" type="checkbox" id="uetds"/>
-                        <label class="form-check-label" for="uetds">U-ETDS</label>
+                  <div class="col-sm-6 mt-2">
+                    <label class="card-radio-label mb-2">
+                      <input type="checkbox" id="oneDirection" v-model="formVariables.uetdsNotification" class="card-radio-input" checked/>
+                      <div class="card-radio">
+                        <i class="mdi mdi-notification-clear-all font-size-24 text-primary align-middle me-2"></i>
+                        <span>U-ETDS</span>
                       </div>
+                    </label>
                   </div>
                 </div>
             </div>
           </div>
-        </div>
-      </div>
 
+          <div class="card" v-if="formVariables.uetdsNotification">
+            <div class="card-body">
+              <h4 class="card-title mb-3">U-ETDS Şoför ve Araç Plaka Seçimi</h4>
+              <div class="row">
+                <div class="col-sm-6 mt-2">
+                      <label for="authorizedPhone">Şoför ve Diğer Personeller</label>
+                      <multiselect 
+                            id="vehicleTypes"
+                            v-model="tempEmployess" 
+                            :options="this.employessArray"
+                            :custom-label="employessTypesObject"
+                            :searchable="true"
+                            :multiple="true"
+                            track-by="id"
+                            open-direction="bottom"
+                            group-values="employees"
+                            group-label="type"
+                            placeholder="Seçiniz"
+                            selectLabel="Seçiniz"
+                            deselectLabel="Seçimi Kaldır"
+                            selectedLabel="Seçilen"
+                            :class="{
+                            'is-invalid':
+                              formsubmit && $v.formVariables.employees.$error,
+                            }"
+                            >
+                            <span slot="noResult">Oops! Öğe bulunamadı. Arama sorgusunu değiştirmeyi deneyin.</span>
+                      </multiselect>
+                      <div v-if="formsubmit && $v.formVariables.employees.$error" class="invalid-feedback">
+                        <span v-if="!$v.formVariables.employees.required">Bu alan gereklidir.</span>
+                      </div>
+                </div>
+                <div class="col-sm-6 mt-2">
+                  <label for="authorizedPhone">Araç</label>
+                  <multiselect 
+                      id="vehicleTypes"
+                      v-model="tempVehicle" 
+                      :options="this.vehicles"
+                      :custom-label="vehiclesTypesObject"
+                      :searchable="true"
+                      open-direction="bottom"
+                      placeholder="Seçiniz"
+                      selectLabel="Seçiniz"
+                      deselectLabel="Seçimi Kaldır"
+                      selectedLabel="Seçilen"
+                      :class="{
+                      'is-invalid':
+                        formsubmit && $v.formVariables.vehicle.$error,
+                      }"
+                      >
+                      <span slot="noResult">Oops! Öğe bulunamadı. Arama sorgusunu değiştirmeyi deneyin.</span>
+                  </multiselect>
+                  <div v-if="formsubmit && $v.formVariables.vehicle.$error" class="invalid-feedback">
+                    <span v-if="!$v.formVariables.vehicle.required">Bu alan gereklidir.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      <div class="row">
-        <div class="col-lg-12">
           <div class="card">
             <div class="card-body">
               <h4 class="card-title mb-3">Fiyatlandırma</h4>
@@ -1412,8 +1586,7 @@ export default {
                         'is-invalid': formsubmit && $v.formVariables.rezervationPrice.$error,
                       }"
                     />
-                    <div
-                      v-if="formsubmit && $v.formVariables.rezervationPrice.$error" class="invalid-feedback">
+                    <div v-if="formsubmit && $v.formVariables.rezervationPrice.$error" class="invalid-feedback">
                       <span v-if="!$v.formVariables.rezervationPrice.required">Bu alan gereklidir.</span>
                       <span v-if="!$v.formVariables.rezervationPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.</span>
                     </div>
@@ -1423,10 +1596,11 @@ export default {
                   <div class="mb-3">
                     <label for="uetdsPrice">UETDS Fiyatı</label>
                     <input
-                      v-model="formVariables.uetdsPrice"
+                      v-model="tempUetdsPrice"
                       id="uetdsPrice"
                       name="uetdsPrice"
                       type="text"
+                      :disabled="!this.formVariables.uetdsNotification"
                       class="form-control"
                       placeholder="00.00"
                       :class="{
@@ -1444,7 +1618,7 @@ export default {
                   <div class="mb-3">
                     <label for="directionPrice">Yön Fiyatı</label>
                     <input
-                      v-model="formVariables.directionPrice"
+                      v-model="tempDirectionPrice"
                       :disabled="companyOwner"
                       id="directionPrice"
                       name="directionPrice"
@@ -1467,25 +1641,31 @@ export default {
                   <div class="mb-3">
                     <label for="role">Para Birimi</label>
                     <multiselect 
-                          v-model="priceCurrencySelected" 
+                          v-model="tempPriceCurrencySelected" 
                           :options="this.priceCurrency"
-                          :searchable="true"
                           :custom-label="priceCurrencyObject"
-                          @select="selectedPriceCurrency"
                           placeholder="Seçiniz"
                           selectLabel="Seçiniz"
                           deselectLabel="Seçimi Kaldır"
-                          selectedLabel="Seçilen">
+                          selectedLabel="Seçilen"
+                          :class="{
+                          'is-invalid':
+                            formsubmit && $v.formVariables.priceCurrency.$error,
+                          }">
                           <span slot="noResult">Oops! Öğe bulunamadı. Arama sorgusunu değiştirmeyi deneyin.</span>
                     </multiselect>
+                    <div v-if="formsubmit && $v.formVariables.priceCurrency.$error" class="invalid-feedback">
+                      <span v-if="!$v.formVariables.priceCurrency.required">Bu alan gereklidir.</span>
+                    </div> 
                   </div>
                 </div>
                 <div class="col-sm-3">
                   <div class="mb-3">
                     <label for="role">Durum</label>
                     <multiselect 
-                          v-model="formVariables.status" 
+                          v-model="tempStatus" 
                           :options="this.statusVariables"
+                          :custom-label="statusVariablesObject"
                           placeholder="Seçiniz"
                           selectLabel=""
                           deselectLabel=""
@@ -1505,10 +1685,8 @@ export default {
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="row">
-        <div class="col-sm-6">
+         <div class="col-sm-6">
           <div class="card">
             <div class="card-body">
               <h4 class="card-title mb-4">BİLGİLENDİRME</h4>
@@ -1518,40 +1696,43 @@ export default {
             </div>
           </div>
         </div>
+
         <div class="col-sm-6">
-        <div class="card">
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table mb-0">
-                  <tbody>
-                    <tr v-if="!companyOwner">
-                      <td>Yön Fiyatı :</td>
-                      <td class="text-sm-end">{{this.formVariables.directionPrice | priceFormat }} {{this.priceCurrencySelected.symbol}}</td>
-                    </tr>
-                    <tr>
-                      <td>Ara Toplam : </td>
-                      <td class="text-sm-end">{{this.formVariables.price.subtotal | priceFormat }} {{this.priceCurrencySelected.symbol}}</td>
-                    </tr>
-                    <tr>
-                      <td>KDV({{this.taxation.localTaxRate}}%) :</td>
-                      <td class="text-sm-end">{{this.formVariables.price.tax | priceFormat }} {{this.priceCurrencySelected.symbol}}</td>
-                    </tr>
-                    <tr>
-                      <th>Toplam :</th>
-                      <td class="text-sm-end">{{this.formVariables.price.total | priceFormat }} {{this.priceCurrencySelected.symbol}}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="d-grid mt-4">
-                <div class="d-grid gap-2">
-                  <button block class="btn btn-secondary ms-1" v-on:click="submitForm">Rezervasyon Oluştur</button>
+          <div class="card">
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table mb-0">
+                    <tbody>
+                      <tr v-if="!companyOwner">
+                        <td>Yön Fiyatı :</td>
+                        <td class="text-sm-end">{{this.formVariables.directionPrice==null ? 0 : this.formVariables.directionPrice | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                      </tr>
+                      <tr>
+                        <td>Ara Toplam : </td>
+                        <td class="text-sm-end">{{this.formVariables.price.subtotal | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                      </tr>
+                      <tr>
+                        <td>KDV({{this.taxation.localTaxRate}}%) :</td>
+                        <td class="text-sm-end">{{this.formVariables.price.tax | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                      </tr>
+                      <tr>
+                        <th>Toplam :</th>
+                        <td class="text-sm-end">{{this.formVariables.price.total | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="d-grid mt-4">
+                  <div class="d-grid gap-2">
+                    <button block type="submit" class="btn btn-success" v-on:click="submitForm" :disabled="this.$store.state.rezervation.isBtnDisabled">
+                    <i class="bx bx-loader bx-spin font-size-16 align-middle me-2" v-if="this.$store.state.rezervation.isBtnDisabled"></i>
+                      Rezervasyon Oluştur
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-            </div>
+          </div>
         </div>
       </div>
-   
   </Layout>
 </template>

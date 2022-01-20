@@ -57,3 +57,5 @@ export const pointMethod = mapActions('point', ['fetchCities','createPoint','fet
 export const airportMethod = mapActions('airport', ['fetchAirports','createAirport','fetchAirport','fetchUetdsAirports','updateAirport']);
 
 export const taxationMethod = mapActions('taxation', ['fetchTaxation','updateTaxation']);  
+
+export const rezervationMethod = mapActions('rezervation', ['createRezervation','fetchRezervation','updateRezervation']); 

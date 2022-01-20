@@ -41,7 +41,6 @@ export const actions = {
         const res = await accessService.default.post("customers", payload);
         if (res.data.success) {
             commit('setNotification', { status: true, message: "Müşteri başarı ile kaydedildi." })
-            console.log('-----ic----',res.data.data)
             commit('setCustomer', res.data.data)
             setTimeout(function () { commit('setNotification', { status: null, message: null }) }, 3000);
         } else {
