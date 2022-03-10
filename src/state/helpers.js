@@ -58,4 +58,6 @@ export const airportMethod = mapActions('airport', ['fetchAirports','createAirpo
 
 export const taxationMethod = mapActions('taxation', ['fetchTaxation','updateTaxation']);  
 
-export const rezervationMethod = mapActions('rezervation', ['createRezervation','fetchRezervation','updateRezervation']); 
+export const rezervationMethod = mapActions('rezervation', ['fetchRezervations','createRezervation','fetchRezervation','updateRezervation','updateVehicleOfRezervation','setEmployeeOfRezervation','removeEmployeeOfRezervation']); 
+
+export const uetdsMethod = mapActions('uetds', ['sendNotification','cancelNotification','printOut']);  

@@ -97,8 +97,9 @@ export default {
       tempDropOffTime:'09:00',
       tempUetdsPrice:null,
       tempDirectionPrice:null,
+      tempDropOffDateTime:null,
+      tempPickUpDateTime:null,
       foundCustomerId:null,
-      oneTimeAddPassangertoList:true,
       passangerList:{
         tcknOrPassport: null,
         name: null,
@@ -120,10 +121,8 @@ export default {
         startPoint:null,
         endPoint:null,
         terminal:null,
-        pickUpDate:null,
-        pickUpTime:null,
-        dropOffTime:null,
-        dropOffDate:null,
+        pickUpDateTime:null,
+        dropOffDateTime:null,
         transferType:0,
         status:null,
         isReturn:false,
@@ -152,7 +151,7 @@ export default {
             countryName: null
           },
         },
-        employees:null,
+        employees:[],
         pax:[],
         price:{
           subtotal: 0, 
@@ -174,16 +173,18 @@ export default {
       }
     },
     tempPickUpTime(value){
-      this.updateStartDateTime({type:"time",value})
-    },
-    'formVariables.pickUpDate'(value){
-      this.updateStartDateTime({type:"date",value})
+      const timePick = value.split(":");
+      this.formVariables.pickUpDateTime.setHours(timePick[0],timePick[1],0)
     },
     tempDropOffTime(value){
-      this.updateReturnDateTime({type:"time",value})
+      const timeDrop = value.split(":");
+      this.formVariables.dropOffDateTime.setHours(timeDrop[0],timeDrop[1],0);
     },
-    'formVariables.dropOffDate'(value){
-      this.updateReturnDateTime({type:"date",value})
+    tempPickUpDateTime(value){
+      this.formVariables.pickUpDateTime.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
+    },
+    tempDropOffDateTime(value){
+      this.formVariables.dropOffDateTime.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
     },
     'formVariables.transferDirection'(){
       this.formVariables.startPoint=null
@@ -231,7 +232,7 @@ export default {
     },
     tempVehicleType(value){
       if(value!=null){
-        this.formVariables.vehicleType=value.name + ' - ' + value.pax +' Kişi'
+        this.formVariables.vehicleType=value._id
       }else{
         this.formVariables.vehicleType=null
       }
@@ -292,18 +293,17 @@ export default {
         this.foundCustomerId=this.$store.state.customer.customers.data[0]._id
 
         //DB gelen müşteriyi yolcu listesine ekledik
-        if(this.oneTimeAddPassangertoList){
-          this.formVariables.pax=[]
-          this.formVariables.pax.push({
-              tcknOrPassport:this.formVariables.customer.tcknOrPassport,
-              name:this.formVariables.customer.name,
-              surname:this.formVariables.customer.surname,
-              gender:this.formVariables.customer.gender,
-              nationality:this.formVariables.customer.nationality,
-            }
-          )
-          this.oneTimeAddPassangertoList=false
-        }
+        this.formVariables.pax=[]
+        this.formVariables.pax.push({
+            tcknOrPassport:this.formVariables.customer.tcknOrPassport,
+            name:this.formVariables.customer.name,
+            surname:this.formVariables.customer.surname,
+            gender:this.formVariables.customer.gender,
+            nationality:this.formVariables.customer.nationality,
+          }
+        )
+
+        
 
       }else{
         //console.log('bulundumadi')
@@ -315,7 +315,6 @@ export default {
         this.formVariables.customer.nationality=null
 
         this.formVariables.pax=[]
-        this.oneTimeAddPassangertoList=true
 
         this.customerIsAvalible=false
 
@@ -374,32 +373,6 @@ export default {
     }
   },
   methods: {
-    updateStartDateTime({type,value}){
-      if(type=="time" & value!=null){
-        this.formVariables.pickUpTime.setHours(value.split(":")[0]);
-        this.formVariables.pickUpTime.setMinutes(value.split(":")[1]);
-      }
-
-      if(type=="date"){
-        this.formVariables.pickUpDate.setHours(0, 0, 0, 0);
-        this.formVariables.pickUpDate.setDate(value.getDate());
-        this.formVariables.pickUpDate.setMonth(value.getMonth());
-        this.formVariables.pickUpDate.setFullYear(value.getFullYear());
-      }
-    },
-    updateReturnDateTime({type,value}){
-      if(type=="time" & value!=null){
-        this.formVariables.dropOffTime.setHours(value.split(":")[0]);
-        this.formVariables.dropOffTime.setMinutes(value.split(":")[1]);
-      }
-
-      if(type=="date"){
-        this.formVariables.dropOffDate.setHours(0, 0, 0, 0);
-        this.formVariables.dropOffDate.setDate(value.getDate());
-        this.formVariables.dropOffDate.setMonth(value.getMonth());
-        this.formVariables.dropOffDate.setFullYear(value.getFullYear());
-      }
-    },
     submitAddPaxForm() {
       this.addPaxSubmit = true;
       this.$v.passangerList.$touch();
@@ -431,21 +404,6 @@ export default {
     },
     countriesObject (value) {
       return `${value.countryName} — [${value.code}]`
-    },
-    resetCustomerForm(){
-      this.formVariables.customer.tcknOrPassport=null;
-      this.formVariables.customer.name=null;
-      this.formVariables.customer.surname=null;
-      this.formVariables.customer.email=null;
-      
-      this.formVariables.customer.phone.countryCode=null;
-      this.formVariables.customer.phone.nationalNumber=null;
-      this.formVariables.customer.phone.countryCallingCode=null;
-      this.formVariables.customer.phone.formattedNumber=null;
-      this.formVariables.customer.phone.phoneNumber=null;
-
-      this.formVariables.customer.gender= null;
-      this.formVariables.customer.nationality= null;
     },
     agencyObject ({ companyName }) {
       return `${companyName}`
@@ -582,7 +540,7 @@ export default {
           agency:this.formVariables.agency,
           transferType:this.formVariables.transferType,
           vehicleType:this.formVariables.vehicleType,
-          employees:this.formVariables.employees,
+          employee:this.formVariables.employees,
           customer:null,
           transferDirection:this.formVariables.transferDirection,
           startPoint:this.formVariables.startPoint,
@@ -590,10 +548,8 @@ export default {
           flightNumber:this.formVariables.flightNumber,
           terminal:this.formVariables.terminal,
           isReturn:this.formVariables.isReturn,
-          pickUpDate:this.formVariables.pickUpDate,
-          pickUpTime:this.formVariables.pickUpTime,
-          dropOffDate:this.formVariables.dropOffDate,
-          dropOffTime:this.formVariables.dropOffTime,
+          pickUpDateTime:this.formVariables.pickUpDateTime,
+          dropOffDateTime:this.formVariables.dropOffDateTime,
           babySeat:this.formVariables.babySeat,
           childSeat:this.formVariables.childSeat,
           wheelSeat:this.formVariables.wheelSeat,
@@ -626,6 +582,8 @@ export default {
           //console.log(this.$store.state.rezervation.rezervation);
           this.scrollToTop();
         }
+
+        console.log(rezervationForm);
       }
     },
     updatePassengerList(){
@@ -682,15 +640,6 @@ export default {
       directionPrice:{ required: requiredIf(function () {
           return !this.companyOwner
       }), maxLength: maxLength(50) },
-      pickUpTime:{ required },
-      pickUpDate:{ required },
-      dropOffTime:{ required: requiredIf(function (value) {
-        return value.isReturn
-      })},
-      
-      dropOffDate:{ required: requiredIf(function (value) {
-        return value.isReturn
-      })},
       employees:{ required: requiredIf(function (value) {
         return value.uetdsNotification
       })},
@@ -723,17 +672,17 @@ export default {
     this.setAirport();
     this. setEmployess();
 
-    var timeDropOffTime=new Date()
-    timeDropOffTime.setHours(9,0,0)
+    var DateTimeDropOff=new Date()
+    DateTimeDropOff.setHours(9,0,0)
 
-    var timePickUpTime=new Date()
-    timePickUpTime.setHours(9,0,0)
+    var  DateTimePickUp=new Date()
+    DateTimePickUp.setHours(9,0,0)
 
-    this.formVariables.pickUpDate=new Date();
-    this.formVariables.pickUpTime=timePickUpTime
-
-    this.formVariables.dropOffDate=new Date()
-    this.formVariables.dropOffTime=timeDropOffTime
+    this.tempPickUpDateTime=DateTimePickUp
+    this.tempDropOffDateTime=DateTimeDropOff
+    
+    this.formVariables.pickUpDateTime=DateTimePickUp
+    this.formVariables.dropOffDateTime=DateTimeDropOff
 
     this.isLoading=true
   },
@@ -1237,41 +1186,23 @@ export default {
               <div class="row">
                 <div class="col-sm-6 mt-2">
                   <label>Alış Tarihi</label>
-                    <date-picker format="DD-MM-YYYY" placeholder="Alış tarihi" v-model="formVariables.pickUpDate" :first-day-of-week="1" lang="tr"
-                      :class="{'is-invalid': formsubmit && $v.formVariables.pickUpDate.$error}">
-                    </date-picker>
-                    <div v-if="formsubmit && $v.formVariables.pickUpDate.$error" class="invalid-feedback">
-                        <span v-if="!$v.formVariables.pickUpDate.required">Bu alan gereklidir.</span>
-                    </div>
+                    <date-picker :clearable="false" format="DD-MM-YYYY" placeholder="Alış tarihi" v-model="tempPickUpDateTime" :first-day-of-week="1" lang="tr"></date-picker>
                 </div>
                 <div class="col-sm-6 mt-2">
                   <label>Alış Saati</label>
-                    <date-picker sync="false" id="pickUpTime" v-model="tempPickUpTime" format="HH:mm" value-type="format" type="time" placeholder="ss:dd"
-                    :class="{'is-invalid': formsubmit && $v.formVariables.pickUpTime.$error}"></date-picker>
-                    <div v-if="formsubmit && $v.formVariables.pickUpTime.$error" class="invalid-feedback">
-                        <span v-if="!$v.formVariables.pickUpTime.required">Bu alan gereklidir.</span>
-                    </div>
+                    <date-picker :clearable="false" sync="false" id="pickUpTime" v-model="tempPickUpTime" :time-picker-options="{start:'00:00',step:'00:15',end:'23:45'}" format="HH:mm" value-type="format" type="time" placeholder="ss:dd"></date-picker>
                 </div>
               </div>
               
               <div class="row" v-if="formVariables.isReturn">
                 <div class="col-sm-6 mt-2">
                   <label>Dönüş Tarihi</label>
-                    <date-picker format="DD-MM-YYYY" placeholder="Dönüş Tarihi" v-model="formVariables.dropOffDate" :first-day-of-week="1" lang="tr"
-                      :class="{'is-invalid': formsubmit && $v.formVariables.dropOffDate.$error}">
+                    <date-picker :clearable="false" format="DD-MM-YYYY" placeholder="Dönüş Tarihi" v-model="tempDropOffDateTime" :first-day-of-week="1" lang="tr">
                     </date-picker>
-                    <div v-if="formsubmit && $v.formVariables.dropOffDate.$error" class="invalid-feedback">
-                        <span v-if="!$v.formVariables.dropOffDate.required">Bu alan gereklidir.</span>
-                    </div>
                 </div>
                 <div class="col-sm-6 mt-2">
                   <label>Dönüş Saati</label>
-                    <date-picker id="dropOffTime" v-model="tempDropOffTime" format="HH:mm" value-type="format" type="time" placeholder="ss:dd"
-                    :class="{'is-invalid': formsubmit && $v.formVariables.dropOffTime.$error}"
-                    ></date-picker>
-                    <div v-if="formsubmit && $v.formVariables.dropOffTime.$error" class="invalid-feedback">
-                        <span v-if="!$v.formVariables.dropOffTime.required">Bu alan gereklidir.</span>
-                    </div>
+                    <date-picker :clearable="false" id="dropOffTime" v-model="tempDropOffTime" :time-picker-options="{start:'00:00',step:'00:15',end:'23:45'}" format="HH:mm" value-type="format" type="time" placeholder="ss:dd"></date-picker>
                 </div>
               </div>
 
