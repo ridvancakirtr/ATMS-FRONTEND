@@ -80,6 +80,7 @@ export default {
           symbol:'£',
         }
       ],
+      isFormChange:false,
       isLoading:false,
       id:null,
       addPaxSubmit: false,
@@ -170,7 +171,7 @@ export default {
   },
   watch:{
     tempVehicle(value){
-      console.log("cehıcle test", value);
+      this.isFormChange=true
       if(value!=null){
         this.formVariables.vehicle=value._id
       }else{
@@ -178,22 +179,33 @@ export default {
       }
     },
     tempPickUpTime(value){
+      this.isFormChange=true
       const timePick = value.split(":");
       this.formVariables.pickUpDateTime.setHours(timePick[0],timePick[1],0)
     },
     tempDropOffTime(value){
+      this.isFormChange=true
       const timeDrop = value.split(":");
       this.formVariables.dropOffDateTime.setHours(timeDrop[0],timeDrop[1],0);
     },
     tempPickUpDateTime(value){
+      this.isFormChange=true
       this.formVariables.pickUpDateTime.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
     },
     tempDropOffDateTime(value){
+      this.isFormChange=true
       this.formVariables.dropOffDateTime.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
     },
     'formVariables.transferDirection'(){
+      this.isFormChange=true
       this.formVariables.startPoint=null
       this.formVariables.endPoint=null
+    },
+    'formVariables.startPoint'(){
+      this.isFormChange=true;
+    },
+    'formVariables.endPoint'(){
+      this.isFormChange=true;
     },
     'formVariables.isReturn'(value){
       this.formVariables.isReturn=value
@@ -213,6 +225,12 @@ export default {
       }
     },
     'formVariables.uetdsNotification'(value){
+      if (!value) {
+        this.formVariables.uetdsPrice=null
+      }
+    },
+    'formVariables.uetdsPrice'(value){
+      this.isFormChange=true
       if (!value) {
         this.formVariables.uetdsPrice=null
       }
@@ -249,6 +267,7 @@ export default {
       }
     },
     tempEmployess(){
+      this.isFormChange=true
       let temp=[]
       this.tempEmployess.forEach(function(element) {
         temp.push(element._id)
@@ -284,6 +303,9 @@ export default {
         this.formVariables.transferType=value.id
       }
     },
+    isFormChange(newValue, oldValue){
+      console.log("----",newValue,'-----', oldValue);
+    }
   },
   computed: {
     vehicles(){
@@ -325,6 +347,8 @@ export default {
   },
   methods: {
     submitAddPaxForm() {
+      this.isFormChange=true
+
       this.addPaxSubmit = true;
       this.$v.passangerList.$touch();
       //console.log("girdi");
@@ -490,9 +514,13 @@ export default {
     },
     async submitForm() {
       
+
+      console.log('======:: ',this.isFormChange);
+
       this.formsubmit = true;
       this.$v.formVariables.$touch();
       if (!this.$v.formVariables.$invalid) {
+        /*
         let rezervationForm={
           id:this.formVariables.id,
           agency:this.formVariables.agency,
@@ -523,36 +551,15 @@ export default {
           uetdsStatus:this.rezervation.uetdsStatus,
           uetdsRefNumber:this.rezervation.uetdsRefNumber
         }
-
-        console.log('rezervationForm',rezervationForm);
-
         await this.updateRezervation({id:rezervationForm.id,form:rezervationForm});
+        */
+
         
-        console.log('formVariables',this.formVariables.uetdsPrice);
-        console.log('rezervation',this.rezervation.uetdsPrice);
         
-        //UETDS Fiyat Guncellemesi yapildiginda ilk olarak uetds iptal eder ve tekrar bildirir.
-        if((this.formVariables.uetdsPrice!=this.rezervation.uetdsPrice) && this.formVariables.uetdsNotification && this.rezervation.uetdsStatus){
-          console.log('ETDS Fiyat Guncellemesi')
-          await this.cancelNotification(this.formVariables.id);
-          await this.sendNotification(this.formVariables.id);
-        }
-
-        if(!this.rezervation.uetdsStatus && this.formVariables.uetdsNotification){
-          console.log('bildirildi',this.formVariables);
-          await setTimeout(500);
-          await this.sendNotification(this.formVariables.id);
-          //console.log('bildirildi',this.uetds);
-        }
-
-        if(this.rezervation.uetdsStatus && !this.formVariables.uetdsNotification){
-          await this.cancelNotification(this.formVariables.id);
-          //console.log('iptal edildi');
-        }
-
         this.scrollToTop();
       }
 
+      
     },
     updatePassengerList(){
       if(!this.customerReadOnly){
@@ -603,7 +610,11 @@ export default {
         this.tempPickUpDateTime=new Date(this.rezervation.pickUpDateTime);
 
         const date=new Date(this.rezervation.pickUpDateTime);
-        this.tempPickUpTime=date.getHours()+':'+date.getMinutes()
+        if(date.getHours().length>1){
+          this.tempPickUpTime=date.getHours()+':'+date.getMinutes()
+        }else{
+          this.tempPickUpTime='0'+date.getHours()+':'+date.getMinutes()
+        }
 
         this.tempTransferType=this.transferTypeArray.find( ({ id }) => id == this.rezervation.transferType );
         this.tempEmployess=this.rezervation.employee
@@ -727,6 +738,8 @@ export default {
     this.formVariables.dropOffDateTime=DateTimeDropOff
 
     this.isLoading=true
+
+    this.isFormChange=false
   },
 
 }
