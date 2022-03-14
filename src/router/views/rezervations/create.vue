@@ -25,7 +25,8 @@ import {
   taxationMethod,
   employeeMethod,
   vehicleMethod,
-  rezervationMethod
+  rezervationMethod,
+  uetdsMethod
 } from "@/state/helpers";
 
 /**
@@ -591,21 +592,13 @@ export default {
 
         console.log('--**---',this.rezervation);
 
-        setTimeout(async ()=>{
-          if(this.formVariables.uetdsNotification){
-          await this.sendNotification(this.departureWay._id);
+        if(this.formVariables.uetdsNotification){
+          await this.sendNotification(this.rezervation.departureWay._id);
           console.log('Bildirim Yapıldı Gidiş');
-          if(this.data.returnWay!=null){
-            await this.sendNotification(this.returnWay._id);
-            console.log('Bildirim Yapıldı Dönüş');
-          }
+          await this.sendNotification(this.rezervation.returnWay._id);
+          console.log('Bildirim Yapıldı Dönüş');
           //console.log('Bildirim Yapıldı');
          }
-        },100)
-        
-        
-
-        
       }
     },
     updatePassengerList(){
@@ -630,7 +623,8 @@ export default {
     ...taxationMethod,
     ...customerMethod,
     ...vehicleMethod,
-    ...rezervationMethod
+    ...rezervationMethod,
+    ...uetdsMethod
   },
   validations: {
     passangerList: {
@@ -742,6 +736,14 @@ export default {
 
         <b-alert show dismissible variant="danger" v-if="this.$store.state.customer.notification.status==false">
           <i class="mdi mdi-close-circle-outline me-2"></i>{{this.$store.state.customer.notification.message}}
+        </b-alert>
+
+        <b-alert show dismissible variant="success" v-if="this.$store.state.uetds.notification.status==true">
+          <i class="mdi mdi-check-all me-2"></i>{{this.$store.state.uetds.notification.message}}
+        </b-alert>
+
+        <b-alert show dismissible variant="danger" v-if="this.$store.state.uetds.notification.status==false">
+          <i class="mdi mdi-close-circle-outline me-2"></i>{{this.$store.state.uetds.notification.message}}
         </b-alert>
           
         </div>
