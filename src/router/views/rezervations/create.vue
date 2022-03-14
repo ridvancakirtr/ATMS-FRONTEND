@@ -165,6 +165,9 @@ export default {
     
   },
   watch:{
+    'formVariables.pax'(value){
+      console.log(value);
+    },
     tempVehicle(value){
       if(value!=null){
         this.formVariables.vehicle=value._id
@@ -370,7 +373,10 @@ export default {
     },
     employees(){
       return this.$store.state.employee.employees
-    }
+    },
+    rezervation(){
+      return this.$store.state.rezervation.rezervation.data
+    },
   },
   methods: {
     submitAddPaxForm() {
@@ -583,7 +589,23 @@ export default {
           this.scrollToTop();
         }
 
-        console.log(rezervationForm);
+        console.log('--**---',this.rezervation);
+
+        setTimeout(async ()=>{
+          if(this.formVariables.uetdsNotification){
+          await this.sendNotification(this.departureWay._id);
+          console.log('Bildirim Yapıldı Gidiş');
+          if(this.data.returnWay!=null){
+            await this.sendNotification(this.returnWay._id);
+            console.log('Bildirim Yapıldı Dönüş');
+          }
+          //console.log('Bildirim Yapıldı');
+         }
+        },100)
+        
+        
+
+        
       }
     },
     updatePassengerList(){
@@ -1413,29 +1435,33 @@ export default {
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-body">
-                <h4 class="card-title mb-4">Bildirimler</h4>
-                <div class="row">
-                  <div class="col-sm-6 mt-2">
-                    <label class="card-radio-label mb-2">
-                      <input type="checkbox" id="oneDirection" v-model="formVariables.smsNotification" class="card-radio-input" checked/>
-                      <div class="card-radio">
-                        <i class="mdi mdi-email-outline font-size-24 text-primary align-middle me-2"></i>
-                        <span>SMS</span>
-                      </div>
-                    </label>
-                  </div>
-                  <div class="col-sm-6 mt-2">
-                    <label class="card-radio-label mb-2">
-                      <input type="checkbox" id="oneDirection" v-model="formVariables.uetdsNotification" class="card-radio-input" checked/>
-                      <div class="card-radio">
-                        <i class="mdi mdi-notification-clear-all font-size-24 text-primary align-middle me-2"></i>
-                        <span>U-ETDS</span>
-                      </div>
-                    </label>
-                  </div>
+          <div class="row">
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="card-body">
+                  <h4 class="card-title mb-4">Bilgilendirme</h4>
+                    <div class="col-sm-6 mt-2">
+                      <label class="form-check form-switch form-switch-md mb-3">
+                        <input class="form-check-input" v-model="formVariables.smsNotification" type="checkbox" id="smsNotification"/>
+                        <label class="form-check-label" for="smsNotification">SMS</label>
+                      </label>
+                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div class="col-sm-6">
+              <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title mb-4">Ulaştırma Bakanlığı</h4>
+                    <div class="col-sm-6 mt-2">
+                      <label class="form-check form-switch form-switch-md mb-3">
+                        <input class="form-check-input" v-model="formVariables.uetdsNotification" type="checkbox" id="uetdsNotification"/>
+                        <label class="form-check-label" for="uetdsNotification">U-ETDS</label>
+                      </label>
+                    </div>
+                  </div>
+              </div>
             </div>
           </div>
 

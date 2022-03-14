@@ -94,11 +94,13 @@ export default {
       tempPriceCurrencySelected:null,
       tempStatus:null,
       tempEmployess:[],
+      tempPrice:null,
+      tempUetdsPrice:null,
+      tempDirectionPrice:null,
       tempVehicleType:null,
       tempTransferType:null,
       tempPickUpTime:'09:00',
       tempDropOffTime:'09:00',
-      tempDirectionPrice:null,
       tempDropOffDateTime:null,
       tempPickUpDateTime:null,
       foundCustomerId:null,
@@ -117,7 +119,6 @@ export default {
         agency:null,
         vehicleType:null,
         uetdsPrice:null,
-        rezervationPrice:null,
         directionPrice:null,
         flightNumber:null,
         transferDirection:0,
@@ -170,6 +171,7 @@ export default {
     
   },
   watch:{
+    
     tempVehicle(value){
       this.isFormChange=true
       if(value!=null){
@@ -209,37 +211,38 @@ export default {
     },
     'formVariables.isReturn'(value){
       this.formVariables.isReturn=value
-      if (this.rezervationPrice=='' || this.rezervationPrice==null) {
+      if (this.tempPrice=='' || this.tempPrice==null) {
         this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
       } else {
-       this.formVariables.price=Taxation.calPrice(this.rezervationPrice, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
+       this.formVariables.price=Taxation.calPrice(this.tempPrice, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
       }
     },
-    'formVariables.rezervationPrice'(value){
-      if (value=='' || this.$v.formVariables.rezervationPrice.numaric) {
+    tempPrice(value){
+      if (value=='' || isNaN(value)) {
         this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
-        console.log(`vergi calprice`,this.formVariables);
       } else {
         this.formVariables.price=Taxation.calPrice(value, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
         //console.log(`vergi calprice`,this.formVariables);
       }
     },
-    'formVariables.uetdsNotification'(value){
-      if (!value) {
-        this.formVariables.uetdsPrice=null
-      }
-    },
-    'formVariables.uetdsPrice'(value){
+    tempUetdsPrice(value){
       this.isFormChange=true
-      if (!value) {
+      if (value=='' || isNaN(value)) {
         this.formVariables.uetdsPrice=null
+      }else{
+        this.formVariables.uetdsPrice=parseFloat(value)
       }
     },
     tempDirectionPrice(value){
-      if (value=='') {
+      if (value=='' || isNaN(value)) {
         this.formVariables.directionPrice=null
-      } else {
-        this.formVariables.directionPrice=parseFloat(value);
+      }else{
+        this.formVariables.directionPrice=parseFloat(value)
+      }
+    },
+    'formVariables.uetdsNotification'(value){
+      if (!value) {
+        this.tempUetdsPrice=null
       }
     },
     'formVariables.flightNumber'(value){
@@ -287,8 +290,8 @@ export default {
         if(value.companyOwner){
           this.companyOwner=true
           this.formVariables.transferType=0
-          this.formVariables.directionPrice=null
           this.tempDirectionPrice=null
+          this.formVariables.directionPrice=null
           this.tempTransferType=null
         }else{
           this.tempTransferType=this.transferTypeArray[0]
@@ -302,9 +305,6 @@ export default {
       if(value!=null){
         this.formVariables.transferType=value.id
       }
-    },
-    isFormChange(newValue, oldValue){
-      console.log("----",newValue,'-----', oldValue);
     }
   },
   computed: {
@@ -372,9 +372,6 @@ export default {
         }
         //console.log("kaydetti--");
         this.$v.passangerList.$reset();
-      }else{
-        //console.log("hata");
-        //console.log(this.$v.passangerList);
       }
     },
     countriesObject (value) {
@@ -514,13 +511,10 @@ export default {
     },
     async submitForm() {
       
-
-      console.log('======:: ',this.isFormChange);
-
       this.formsubmit = true;
       this.$v.formVariables.$touch();
       if (!this.$v.formVariables.$invalid) {
-        /*
+      
         let rezervationForm={
           id:this.formVariables.id,
           agency:this.formVariables.agency,
@@ -551,9 +545,28 @@ export default {
           uetdsStatus:this.rezervation.uetdsStatus,
           uetdsRefNumber:this.rezervation.uetdsRefNumber
         }
-        await this.updateRezervation({id:rezervationForm.id,form:rezervationForm});
-        */
 
+        await this.updateRezervation({id:rezervationForm.id,form:rezervationForm});
+        
+
+        if(this.isFormChange && this.rezervation.uetdsStatus){
+          await this.cancelNotification(this.formVariables.id);
+          await this.sendNotification(this.formVariables.id);
+          this.isFormChange=false
+          //console.log('U-ETDS Guncellemesi Yapıldı')
+        }
+
+        if(!this.rezervation.uetdsStatus && this.formVariables.uetdsNotification){
+          await this.sendNotification(this.formVariables.id);
+          this.isFormChange=false
+          //console.log('bildirildi');
+        }
+
+        if(this.rezervation.uetdsStatus && !this.formVariables.uetdsNotification){
+          await this.cancelNotification(this.formVariables.id);
+          this.isFormChange=false
+          //console.log('Bildirim İptal');
+        }
         
         
         this.scrollToTop();
@@ -618,7 +631,7 @@ export default {
 
         this.tempTransferType=this.transferTypeArray.find( ({ id }) => id == this.rezervation.transferType );
         this.tempEmployess=this.rezervation.employee
-      }, 300);
+      }, 50);
 
       this.formVariables.flightNumber=this.rezervation.flightNumber
       this.formVariables.terminal=this.rezervation.terminal
@@ -631,18 +644,21 @@ export default {
       this.tempVehicle=this.rezervation.vehicle
 
       this.formVariables.note=this.rezervation.note
-      this.formVariables.pax=this.rezervation.pax
+
+      this.formVariables.pax=JSON.parse(JSON.stringify(this.rezervation.pax))
 
       this.formVariables.rezervationPrice=this.rezervation.price
       this.tempPriceCurrencySelected=this.priceCurrency.find( ({ id }) => id == this.rezervation.priceCurrency );
       
-      this.formVariables.uetdsPrice=this.rezervation.uetdsPrice
+      this.tempUetdsPrice=this.rezervation.uetdsPrice
       this.tempDirectionPrice=this.rezervation.directionPrice
 
       this.tempStatus=this.statusVariables.find( ({ id }) => id == this.rezervation.status );
+
+      setTimeout(() => {this.isFormChange=false}, 60);
+      
     },
     async printUetds(){
-      console.log(this.rezervation);
       await this.printOut(this.formVariables.id);
       this.pdfURL = 'data:application/octet-stream;base64,'+this.uetdsPrintOutPDF.pdf
       const downloadLink = document.createElement("a");
@@ -688,19 +704,19 @@ export default {
       transferType:{ required: requiredIf(function () {
           return !this.companyOwner
       })},
-      directionPrice:{ required: requiredIf(function () {
-          return !this.companyOwner
-      }), maxLength: maxLength(50),numeric },
       employees:{ required: requiredIf(function (value) {
         return value.uetdsNotification
       })},
       vehicle:{ required: requiredIf(function (value) {
-        return value.uetdsNotification
+        return !value.uetdsNotification
       })},
-      rezervationPrice:{ required, maxLength: maxLength(50),numeric },
+      rezervationPrice:{ required,maxLength: maxLength(10) },
       uetdsPrice:{ required: requiredIf(function (value) {
         return value.uetdsNotification
-      }), maxLength: maxLength(50),numeric },
+      }),maxLength: maxLength(10)},
+      directionPrice:{ required: requiredIf(function () {
+        return !this.companyOwner
+      }),maxLength: maxLength(10)},
       flightNumber:{ required, maxLength: maxLength(50) },
       note:{ maxLength: maxLength(255) },
     }
@@ -1567,23 +1583,33 @@ export default {
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-body">
-                <h4 class="card-title mb-4">Bildirimler</h4>
-                <div class="row">
-                  <div class="col-sm-6 mt-2">
-                    <label class="form-check form-switch form-switch-md mb-3">
-                      <input class="form-check-input" v-model="formVariables.smsNotification" type="checkbox" id="smsNotification"/>
-                      <label class="form-check-label" for="smsNotification">SMS</label>
-                    </label>
-                  </div>
-                  <div class="col-sm-6 mt-2">
-                    <label class="form-check form-switch form-switch-md mb-3">
-                      <input class="form-check-input" v-model="formVariables.uetdsNotification" type="checkbox" id="uetdsNotification" :checked="uetdsChecked"/>
-                      <label class="form-check-label" for="uetdsNotification">U-ETDS</label>
-                    </label>
-                  </div>
+          <div class="row">
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="card-body">
+                  <h4 class="card-title mb-4">Bilgilendirme</h4>
+                    <div class="col-sm-6 mt-2">
+                      <label class="form-check form-switch form-switch-md mb-3">
+                        <input class="form-check-input" v-model="formVariables.smsNotification" type="checkbox" id="smsNotification"/>
+                        <label class="form-check-label" for="smsNotification">SMS</label>
+                      </label>
+                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div class="col-sm-6">
+              <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title mb-4">Ulaştırma Bakanlığı</h4>
+                    <div class="col-sm-6 mt-2">
+                      <label class="form-check form-switch form-switch-md mb-3">
+                        <input class="form-check-input" v-model="formVariables.uetdsNotification" type="checkbox" id="uetdsNotification" :checked="uetdsChecked"/>
+                        <label class="form-check-label" for="uetdsNotification">U-ETDS</label>
+                      </label>
+                    </div>
+                  </div>
+              </div>
             </div>
           </div>
 
@@ -1668,7 +1694,6 @@ export default {
                     <div v-if="formsubmit && $v.formVariables.rezervationPrice.$error" class="invalid-feedback">
                       <span v-if="!$v.formVariables.rezervationPrice.required">Bu alan gereklidir.<br></span>
                       <span v-if="!$v.formVariables.rezervationPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.<br></span>
-                      <span v-if="!$v.formVariables.rezervationPrice.numaric">Bu alana sadece sayı girilebilir.</span>
                     </div>
                   </div>
                 </div>
@@ -1676,7 +1701,7 @@ export default {
                   <div class="mb-3">
                     <label for="uetdsPrice">UETDS Fiyatı</label>
                     <input
-                      v-model="formVariables.uetdsPrice"
+                      v-model="tempUetdsPrice"
                       id="uetdsPrice"
                       name="uetdsPrice"
                       type="text"
@@ -1691,7 +1716,6 @@ export default {
                       v-if="formsubmit && $v.formVariables.uetdsPrice.$error" class="invalid-feedback">
                       <span v-if="!$v.formVariables.uetdsPrice.required">Bu alan gereklidir.<br></span>
                       <span v-if="!$v.formVariables.uetdsPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.<br></span>
-                      <span v-if="!$v.formVariables.uetdsPrice.numaric">Bu alana sadece sayı girilebilir.</span>
                     </div>
                   </div>
                 </div>
@@ -1714,7 +1738,6 @@ export default {
                     <div v-if="formsubmit && $v.formVariables.directionPrice.$error" class="invalid-feedback">
                       <span v-if="!$v.formVariables.directionPrice.required">Bu alan gereklidir.<br></span>
                       <span v-if="!$v.formVariables.directionPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.<br></span>
-                      <span v-if="!$v.formVariables.directionPrice.numaric">Bu alana sadece sayı girilebilir.</span>
                     </div> 
                     
                   </div>
@@ -1766,54 +1789,57 @@ export default {
               </div>
             </div>
           </div>
-        </div>
 
-         <div class="col-sm-6">
-          <div class="card">
-            <div class="card-body">
-              <h4 class="card-title mb-4">BİLGİLENDİRME</h4>
-              <p class="card-title-desc">
-                  Rezervasyon oluşturulukdan sonra, rezervasyon listesinden tarih aralığı belirleyerek arama işlemi yapabilirsiniz. Yönlendirilen rezevasyonlar için acenta listesinden, yönlendirdiğiniz acentayI seçerek yönlendirilen ve alınan tüm transferleri kolayca listeleyebilirsiniz
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-sm-6">
-          <div class="card">
-              <div class="card-body">
-                <div class="table-responsive">
-                  <table class="table mb-0">
-                    <tbody>
-                      <tr v-if="!companyOwner">
-                        <td>Yön Fiyatı :</td>
-                        <td class="text-sm-end">{{this.formVariables.directionPrice==null ? 0 : this.formVariables.directionPrice | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
-                      </tr>
-                      <tr>
-                        <td>Ara Toplam : </td>
-                        <td class="text-sm-end">{{this.formVariables.price.subtotal | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
-                      </tr>
-                      <tr>
-                        <td>KDV({{this.taxation.localTaxRate}}%) :</td>
-                        <td class="text-sm-end">{{this.formVariables.price.tax | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
-                      </tr>
-                      <tr>
-                        <th>Toplam :</th>
-                        <td class="text-sm-end">{{this.formVariables.price.total | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div class="d-grid mt-4">
-                  <div class="d-grid gap-2">
-                    <button block type="submit" class="btn btn-success" v-on:click="submitForm" :disabled="this.$store.state.rezervation.isBtnDisabled || this.$store.state.uetds.isBtnDisabled">
-                    <i class="bx bx-loader bx-spin font-size-16 align-middle me-2" v-if="this.$store.state.rezervation.isBtnDisabled || this.$store.state.uetds.isBtnDisabled"></i>
-                      <span>Rezervasyon Güncelle</span>
-                    </button>
-                  </div>
+          <div class="row">
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="card-body">
+                  <h4 class="card-title mb-4">BİLGİLENDİRME</h4>
+                  <p class="card-title-desc">
+                      Rezervasyon oluşturulukdan sonra, rezervasyon listesinden tarih aralığı belirleyerek arama işlemi yapabilirsiniz. Yönlendirilen rezevasyonlar için acenta listesinden, yönlendirdiğiniz acentayI seçerek yönlendirilen ve alınan tüm transferleri kolayca listeleyebilirsiniz
+                  </p>
                 </div>
               </div>
+            </div>
+
+            <div class="col-sm-6">
+              <div class="card">
+                  <div class="card-body">
+                    <div class="table-responsive">
+                      <table class="table mb-0">
+                        <tbody>
+                          <tr v-if="!companyOwner">
+                            <td>Yön Fiyatı :</td>
+                            <td class="text-sm-end">{{this.formVariables.directionPrice==null ? 0 : this.formVariables.directionPrice | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                          </tr>
+                          <tr>
+                            <td>Ara Toplam : </td>
+                            <td class="text-sm-end">{{this.formVariables.price.subtotal | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                          </tr>
+                          <tr>
+                            <td>KDV({{this.taxation.localTaxRate}}%) :</td>
+                            <td class="text-sm-end">{{this.formVariables.price.tax | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                          </tr>
+                          <tr>
+                            <th>Toplam :</th>
+                            <td class="text-sm-end">{{this.formVariables.price.total | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="d-grid mt-4">
+                      <div class="d-grid gap-2">
+                        <button block type="submit" class="btn btn-success" v-on:click="submitForm" :disabled="this.$store.state.rezervation.isBtnDisabled || this.$store.state.uetds.isBtnDisabled">
+                        <i class="bx bx-loader bx-spin font-size-16 align-middle me-2" v-if="this.$store.state.rezervation.isBtnDisabled || this.$store.state.uetds.isBtnDisabled"></i>
+                          <span>Rezervasyon Güncelle</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            </div>
           </div>
+          
         </div>
       </div>
   </Layout>

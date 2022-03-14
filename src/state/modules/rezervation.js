@@ -59,12 +59,12 @@ export const actions = {
             setTimeout(function () { commit('setNotification', { status: null, message: null }) }, 5000);
         }
         commit('setBtnDisabled', false)
+        return true
     },
     
     async updateRezervation({ commit }, payload) {
         commit('setBtnDisabled', true)
         const res = await accessService.default.put("rezervations/" + payload.id, payload.form);
-        console.log('res---',res)
         if (res.data.success) {
             commit('setRezervation', res.data.data)
             commit('setNotification', { status: true, message: "Rezervasyon başarı ile güncellendi." })
