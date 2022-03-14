@@ -580,25 +580,25 @@ export default {
             //console.log(rezervationForm)
             await this.createRezervation(rezervationForm);
             //console.log(this.$store.state.rezervation.rezervation);
-            this.scrollToTop();
           }
         }else{
           //console.log(rezervationForm)
           rezervationForm.customer=this.foundCustomerId;
           await this.createRezervation(rezervationForm);
           //console.log(this.$store.state.rezervation.rezervation);
-          this.scrollToTop();
         }
-
-        console.log('--**---',this.rezervation);
 
         if(this.formVariables.uetdsNotification){
           await this.sendNotification(this.rezervation.departureWay._id);
-          console.log('Bildirim Yapıldı Gidiş');
-          await this.sendNotification(this.rezervation.returnWay._id);
-          console.log('Bildirim Yapıldı Dönüş');
+          //console.log('Bildirim Yapıldı Gidiş');
+          if(this.formVariables.isReturn){
+            await this.sendNotification(this.rezervation.returnWay._id);
+            //console.log('Bildirim Yapıldı Dönüş');
+          }
           //console.log('Bildirim Yapıldı');
          }
+
+         this.scrollToTop();
       }
     },
     updatePassengerList(){
@@ -686,7 +686,7 @@ export default {
     this.setAgencies();
     this.setLocation();
     this.setAirport();
-    this. setEmployess();
+    this.setEmployess();
 
     var DateTimeDropOff=new Date()
     DateTimeDropOff.setHours(9,0,0)
@@ -1683,8 +1683,8 @@ export default {
                 </div>
                 <div class="d-grid mt-4">
                   <div class="d-grid gap-2">
-                    <button block type="submit" class="btn btn-success" v-on:click="submitForm" :disabled="this.$store.state.rezervation.isBtnDisabled">
-                    <i class="bx bx-loader bx-spin font-size-16 align-middle me-2" v-if="this.$store.state.rezervation.isBtnDisabled"></i>
+                    <button block type="submit" class="btn btn-success" v-on:click="submitForm" :disabled="this.$store.state.rezervation.isBtnDisabled || this.$store.state.uetds.isBtnDisabled">
+                    <i class="bx bx-loader bx-spin font-size-16 align-middle me-2" v-if="this.$store.state.rezervation.isBtnDisabled || this.$store.state.uetds.isBtnDisabled"></i>
                       Rezervasyon Oluştur
                     </button>
                   </div>

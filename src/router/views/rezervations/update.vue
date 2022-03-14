@@ -218,6 +218,7 @@ export default {
       }
     },
     tempPrice(value){
+      console.log(value);
       if (value=='' || isNaN(value)) {
         this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
       } else {
@@ -509,6 +510,25 @@ export default {
       }
       return 'checked'
     },
+    timeAddZero(date) {
+      let d=new Date(date);
+      let h=null
+      let m=null
+    
+      if(d.getHours()< 10){
+        h="0" + d.getHours();
+      }else{
+        h=d.getHours();
+      }
+
+      if(d.getMinutes()< 10){
+        m="0" + d.getMinutes();
+      }else{
+        m=d.getMinutes();
+      }
+
+      return h+':'+m
+    },
     async submitForm() {
       
       this.formsubmit = true;
@@ -622,12 +642,7 @@ export default {
         this.formVariables.endPoint=this.rezervation.endPoint
         this.tempPickUpDateTime=new Date(this.rezervation.pickUpDateTime);
 
-        const date=new Date(this.rezervation.pickUpDateTime);
-        if(date.getHours().length>1){
-          this.tempPickUpTime=date.getHours()+':'+date.getMinutes()
-        }else{
-          this.tempPickUpTime='0'+date.getHours()+':'+date.getMinutes()
-        }
+        this.tempPickUpTime=this.timeAddZero(this.rezervation.pickUpDateTime)
 
         this.tempTransferType=this.transferTypeArray.find( ({ id }) => id == this.rezervation.transferType );
         this.tempEmployess=this.rezervation.employee
@@ -647,7 +662,7 @@ export default {
 
       this.formVariables.pax=JSON.parse(JSON.stringify(this.rezervation.pax))
 
-      this.formVariables.rezervationPrice=this.rezervation.price
+      this.tempPrice=this.rezervation.price
       this.tempPriceCurrencySelected=this.priceCurrency.find( ({ id }) => id == this.rezervation.priceCurrency );
       
       this.tempUetdsPrice=this.rezervation.uetdsPrice
@@ -656,6 +671,8 @@ export default {
       this.tempStatus=this.statusVariables.find( ({ id }) => id == this.rezervation.status );
 
       setTimeout(() => {this.isFormChange=false}, 60);
+
+      console.log(this.$v);
       
     },
     async printUetds(){
@@ -685,6 +702,7 @@ export default {
       gender: { required },
       nationality: { required }
     },
+    tempPrice:{ required,maxLength: maxLength(10) },
     formVariables:{
       agency:{ required },
       customer: {
@@ -710,7 +728,6 @@ export default {
       vehicle:{ required: requiredIf(function (value) {
         return !value.uetdsNotification
       })},
-      rezervationPrice:{ required,maxLength: maxLength(10) },
       uetdsPrice:{ required: requiredIf(function (value) {
         return value.uetdsNotification
       }),maxLength: maxLength(10)},
@@ -1681,19 +1698,19 @@ export default {
                   <div class="mb-3">
                     <label for="transferPrice">Fiyat</label>
                     <input
-                      v-model="formVariables.rezervationPrice"
+                      v-model="tempPrice"
                       id="transferPrice"
                       name="transferPrice"
                       type="text"
                       class="form-control"
                       placeholder="00.00"
                       :class="{
-                        'is-invalid': formsubmit && $v.formVariables.rezervationPrice.$error,
+                        'is-invalid': formsubmit && $v.tempPrice.$error,
                       }"
                     />
-                    <div v-if="formsubmit && $v.formVariables.rezervationPrice.$error" class="invalid-feedback">
-                      <span v-if="!$v.formVariables.rezervationPrice.required">Bu alan gereklidir.<br></span>
-                      <span v-if="!$v.formVariables.rezervationPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.<br></span>
+                    <div v-if="formsubmit && $v.tempPrice.$error" class="invalid-feedback">
+                      <span v-if="!$v.tempPrice.required">Bu alan gereklidir.<br></span>
+                      <span v-if="!$v.tempPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.<br></span>
                     </div>
                   </div>
                 </div>
