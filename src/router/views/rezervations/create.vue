@@ -115,7 +115,7 @@ export default {
         agency:null,
         vehicleType:null,
         uetdsPrice:null,
-        rezervationPrice:null,
+        tempPrice:null,
         directionPrice:null,
         flightNumber:null,
         transferDirection:0,
@@ -166,9 +166,6 @@ export default {
     
   },
   watch:{
-    'formVariables.pax'(value){
-      console.log(value);
-    },
     tempVehicle(value){
       if(value!=null){
         this.formVariables.vehicle=value._id
@@ -196,14 +193,14 @@ export default {
     },
     'formVariables.isReturn'(value){
       this.formVariables.isReturn=value
-      if (this.rezervationPrice=='' || this.rezervationPrice==null) {
+      if (this.formVariables.tempPrice=='' || this.formVariables.tempPrice==null) {
         this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
       } else {
-       this.formVariables.price=Taxation.calPrice(this.rezervationPrice, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
+       this.formVariables.price=Taxation.calPrice(this.formVariables.tempPrice, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
       }
     },
-    'formVariables.rezervationPrice'(value){
-      if (value=='') {
+    'formVariables.tempPrice'(value){
+      if (value=='' || isNaN(value)) {
         this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
         //console.log(`vergi calprice`,this.formVariables);
       } else {
@@ -211,24 +208,25 @@ export default {
         //console.log(`vergi calprice`,this.formVariables);
       }
     },
-    'formVariables.uetdsNotification'(value){
-      if (!value) {
-        this.tempUetdsPrice=null
-        this.formVariables.uetdsPrice=null
-      }
-    },
     tempUetdsPrice(value){
+      this.isFormChange=true
       if (value=='') {
         this.formVariables.uetdsPrice=null
-      } else {
-        this.formVariables.uetdsPrice=parseFloat(value);
+      }else{
+        this.formVariables.uetdsPrice=parseFloat(value)
       }
     },
     tempDirectionPrice(value){
       if (value=='') {
         this.formVariables.directionPrice=null
-      } else {
-        this.formVariables.directionPrice=parseFloat(value);
+      }else{
+        this.formVariables.directionPrice=parseFloat(value)
+      }
+    },
+    'formVariables.uetdsNotification'(value){
+      if (!value) {
+        this.tempUetdsPrice=null
+        this.formVariables.uetdsPrice=null
       }
     },
     'formVariables.flightNumber'(value){
@@ -653,19 +651,19 @@ export default {
       transferType:{ required: requiredIf(function () {
           return !this.companyOwner
       })},
-      directionPrice:{ required: requiredIf(function () {
-          return !this.companyOwner
-      }), maxLength: maxLength(50) },
       employees:{ required: requiredIf(function (value) {
         return value.uetdsNotification
       })},
       vehicle:{ required: requiredIf(function (value) {
         return value.uetdsNotification
       })},
-      rezervationPrice:{ required, maxLength: maxLength(50) },
+      tempPrice:{ required, numeric, maxLength: maxLength(10) },
       uetdsPrice:{ required: requiredIf(function (value) {
         return value.uetdsNotification
-      }), maxLength: maxLength(50) },
+      }),maxLength: maxLength(10),numeric},
+      directionPrice:{ required: requiredIf(function () {
+        return !this.companyOwner
+      }),maxLength: maxLength(10),numeric},
       flightNumber:{ required, maxLength: maxLength(50) },
       note:{ maxLength: maxLength(255) },
     }
@@ -1535,19 +1533,20 @@ export default {
                   <div class="mb-3">
                     <label for="transferPrice">Fiyat</label>
                     <input
-                      v-model="formVariables.rezervationPrice"
+                      v-model.trim="formVariables.tempPrice"
                       id="transferPrice"
                       name="transferPrice"
                       type="text"
                       class="form-control"
                       placeholder="00.00"
                       :class="{
-                        'is-invalid': formsubmit && $v.formVariables.rezervationPrice.$error,
+                        'is-invalid': formsubmit && this.$v.formVariables.tempPrice.$error,
                       }"
                     />
-                    <div v-if="formsubmit && $v.formVariables.rezervationPrice.$error" class="invalid-feedback">
-                      <span v-if="!$v.formVariables.rezervationPrice.required">Bu alan gereklidir.</span>
-                      <span v-if="!$v.formVariables.rezervationPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.</span>
+                    <div v-if="formsubmit && $v.formVariables.tempPrice.$error" class="invalid-feedback">
+                      <span v-if="!$v.formVariables.tempPrice.required">Bu alan gereklidir.<br></span>
+                      <span v-if="!$v.formVariables.tempPrice.numeric">Bu alana sadece sayı girilebilir.<br></span>
+                      <span v-if="!$v.formVariables.tempPrice.maxLength">Bu alana maksimum 10 karakter girilebilir.</span>
                     </div>
                   </div>
                 </div>
@@ -1568,8 +1567,9 @@ export default {
                       />
                     <div
                       v-if="formsubmit && $v.formVariables.uetdsPrice.$error" class="invalid-feedback">
-                      <span v-if="!$v.formVariables.uetdsPrice.required">Bu alan gereklidir.</span>
-                      <span v-if="!$v.formVariables.uetdsPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.</span>
+                      <span v-if="!$v.formVariables.uetdsPrice.required">Bu alan gereklidir.<br></span>
+                      <span v-if="!$v.formVariables.uetdsPrice.numeric">Bu alana sadece sayı girilebilir.<br></span>
+                      <span v-if="!$v.formVariables.uetdsPrice.maxLength">Bu alana maksimum 10 karakter girilebilir.<br></span>
                     </div>
                   </div>
                 </div>
@@ -1590,8 +1590,9 @@ export default {
                       }"
                     />
                     <div v-if="formsubmit && $v.formVariables.directionPrice.$error" class="invalid-feedback">
-                      <span v-if="!$v.formVariables.directionPrice.required">Bu alan gereklidir.</span>
-                      <span v-if="!$v.formVariables.directionPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.</span>
+                      <span v-if="!$v.formVariables.directionPrice.required">Bu alan gereklidir.<br></span>
+                      <span v-if="!$v.formVariables.directionPrice.numeric">Bu alana sadece sayı girilebilir.<br></span>
+                      <span v-if="!$v.formVariables.directionPrice.maxLength">Bu alana maksimum 50 karakter girilebilir.<br></span>
                     </div> 
                     
                   </div>
