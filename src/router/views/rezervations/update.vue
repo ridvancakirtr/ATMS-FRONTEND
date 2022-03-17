@@ -563,7 +563,7 @@ export default {
           note:this.formVariables.note,
           vehicle:this.formVariables.vehicle,
           smsNotification:this.formVariables.smsNotification,
-          price:this.formVariables.price.subtotal,
+          price:this.formVariables.price,
           uetdsPrice:this.formVariables.uetdsPrice,
           directionPrice:this.formVariables.directionPrice,
           priceCurrency:this.formVariables.priceCurrency,
@@ -572,16 +572,18 @@ export default {
           uetdsRefNumber:this.rezervation.uetdsRefNumber
         }
 
-        let result = await this.updateRezervation({id:rezervationForm.id,form:rezervationForm})
-        
+        let result = await this.updateRezervation({id:this.formVariables.id,form:rezervationForm})
+
         if(result){
 
           if(this.isFormChange && this.rezervation.uetdsStatus){
+
           let cancel = await this.cancelNotification(this.formVariables.id);
             if(cancel){
               await this.sendNotification(this.formVariables.id);
+              
             }
-          this.isFormChange=false
+            this.isFormChange=false
           //console.log('U-ETDS Guncellemesi Yapıldı')
           }
 
@@ -659,9 +661,9 @@ export default {
         this.tempEmployess=this.rezervation.employee
         this.tempVehicle=this.rezervation.vehicle
 
-        console.log('rezervation--',this.rezervation)
-        console.log('employee--',this.rezervation.employee)
-        console.log('vehicle--',this.rezervation.vehicle)
+        // console.log('rezervation--',this.rezervation)
+        // console.log('employee--',this.rezervation.employee)
+        // console.log('vehicle--',this.rezervation.vehicle)
       }, 50);
 
       this.formVariables.flightNumber=this.rezervation.flightNumber
@@ -679,6 +681,8 @@ export default {
       this.formVariables.pax=JSON.parse(JSON.stringify(this.rezervation.pax))
 
       this.formVariables.tempPrice=this.rezervation.price.total
+      this.formVariables.invoicePrice=this.rezervation.price
+
       this.tempPriceCurrencySelected=this.priceCurrency.find( ({ id }) => id == this.rezervation.priceCurrency );
       
       this.tempUetdsPrice=this.rezervation.uetdsPrice

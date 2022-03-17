@@ -78,10 +78,8 @@ export const actions = {
     },
 
     async updateVehicleOfRezervation({ commit }, payload) {
-        console.log(payload);
         commit('setBtnDisabled', true)
         const res = await accessService.default.put("rezervations/" + payload.id + "/vehicle", payload.form);
-        console.log(res);
         if (res.data.success) {
             commit('setNotification', { status: true, message: "Rezervasyon Transfer Aracı başarı ile güncellendi." })
             setTimeout(function () { commit('setNotification', { status: null, message: null }) }, 3000);

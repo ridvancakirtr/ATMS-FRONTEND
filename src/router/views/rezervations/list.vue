@@ -174,6 +174,17 @@ export default {
       }
       await this.updateVehicleOfRezervation(payload);
     },
+    async removeVehicleRow(row,vehicle){
+      let payload={
+        id:row.item._id,
+        form:{
+          vehicle:vehicle._id
+        },
+        vehicle:null,
+        index:row.index
+      }
+      await this.updateVehicleOfRezervation(payload);
+    },
     async setEmployeeRow(row,employee){
       let payload={
         id:row.item._id,
@@ -322,6 +333,7 @@ export default {
                   <multiselect
                     v-bind:value="row.item.vehicle"
                     v-on:select="updateVehicleRow(row,$event)" 
+                    v-on:remove="removeVehicleRow(row,$event)"
                     placeholder="Seçiniz"
                     selectLabel=""
                     deselectLabel=""
