@@ -249,7 +249,7 @@ export default {
     },
     'formVariables.uetdsNotification'(value){
       if (!value) {
-        this.tempUetdsPrice=null
+        this.tempUetdsPrice=''
       }
     },
     'formVariables.flightNumber'(value){
@@ -1370,7 +1370,7 @@ export default {
                 </div>
               </div>
 
-              <div class="row">
+              <div class="row" v-show="false">
                 <div class="col-sm-6 mt-2">
                   <label class="card-radio-label mb-2">
                     <input type="radio" id="oneDirection" :value="false" v-model="formVariables.isReturn" class="card-radio-input" checked/>
