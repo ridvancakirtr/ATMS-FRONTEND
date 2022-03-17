@@ -159,6 +159,11 @@ export default {
           tax: 0, 
           total: 0
         },
+        invoicePrice:{
+          subtotal: 0, 
+          tax: 0, 
+          total: 0
+        },
         uetdsStatus:false,
         note:null,
       }
@@ -194,17 +199,19 @@ export default {
     'formVariables.isReturn'(value){
       this.formVariables.isReturn=value
       if (this.formVariables.tempPrice=='' || this.formVariables.tempPrice==null) {
-        this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
+        this.formVariables.invoicePrice=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
       } else {
-       this.formVariables.price=Taxation.calPrice(this.formVariables.tempPrice, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
+       this.formVariables.invoicePrice=Taxation.calPrice(this.formVariables.tempPrice, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, value);
       }
     },
     'formVariables.tempPrice'(value){
       if (value=='' || isNaN(value)) {
-        this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
+        this.formVariables.price=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, false);
+        this.formVariables.invoicePrice=Taxation.calPrice(0, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
         //console.log(`vergi calprice`,this.formVariables);
       } else {
-        this.formVariables.price=Taxation.calPrice(value, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
+        this.formVariables.price=Taxation.calPrice(value, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, false);
+        this.formVariables.invoicePrice=Taxation.calPrice(value, this.taxation.isTaxation, this.taxation.typeOfTaxation, this.taxation.localTaxRate, this.formVariables.isReturn);
         //console.log(`vergi calprice`,this.formVariables);
       }
     },
@@ -563,7 +570,7 @@ export default {
           vehicle:this.formVariables.vehicle,
           smsNotification:this.formVariables.smsNotification,
           uetdsNotification:this.formVariables.uetdsNotification,
-          price:this.formVariables.price.subtotal,
+          price:this.formVariables.price,
           uetdsPrice:this.formVariables.uetdsPrice,
           directionPrice:this.formVariables.directionPrice,
           priceCurrency:this.formVariables.priceCurrency,
@@ -1671,15 +1678,15 @@ export default {
                       </tr>
                       <tr>
                         <td>Ara Toplam : </td>
-                        <td class="text-sm-end">{{this.formVariables.price.subtotal | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                        <td class="text-sm-end">{{this.formVariables.invoicePrice.subtotal | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
                       </tr>
                       <tr>
                         <td>KDV({{this.taxation.localTaxRate}}%) :</td>
-                        <td class="text-sm-end">{{this.formVariables.price.tax | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                        <td class="text-sm-end">{{this.formVariables.invoicePrice.tax | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
                       </tr>
                       <tr>
                         <th>Toplam :</th>
-                        <td class="text-sm-end">{{this.formVariables.price.total | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
+                        <td class="text-sm-end">{{this.formVariables.invoicePrice.total | priceFormat }} {{ this.tempPriceCurrencySelected!=null ? this.tempPriceCurrencySelected.symbol : ''}}</td>
                       </tr>
                     </tbody>
                   </table>

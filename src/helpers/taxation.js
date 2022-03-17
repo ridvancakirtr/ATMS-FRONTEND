@@ -9,14 +9,14 @@ export function calPrice(price, taxation, taxationtype, taxationrate, isOneway) 
     if (taxation == true) {
         taxrate = "0." + taxationrate;
         tax = parseFloat(subtotal * taxrate);
-        if (taxationtype == true) {
+        if (taxationtype == false) {
             total = subtotal + tax;
             return {
                 "subtotal": subtotal,
                 "tax": tax,
                 "total": total
             };
-        } else if (taxationtype == false) {
+        } else if (taxationtype == true) {
             total = subtotal - tax;
             return {
                 "subtotal": total,

@@ -360,7 +360,7 @@ export default {
                 {{ row.value.name }}
               </template>
               <template #cell(price)="row">
-               {{ row.item.price | priceFormat }} {{ row.item.priceCurrency | priceCurrency }}
+               {{ row.item.price.total | priceFormat }} {{ row.item.priceCurrency | priceCurrency }}
               </template>
               <template #cell(customer)="row">
                 {{ row.value.name+' '+row.value.surname }}
