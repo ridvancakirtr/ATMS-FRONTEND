@@ -35,15 +35,13 @@ export const actions = {
             commit('setUetdsResult', res.data)
             this.commit('rezervation/setUetdsStatus',{uetdsStatus:true,uetdsRefNumber:res.data.data.uetdsSeferRefNo})
             setTimeout(function () { commit('setNotification', { status: null, message: null }) }, 5000);
-            
         } else {
             commit('setNotification', { status: false, message: "U-ETDS Bildirimi Sorun Oluştu" })
             commit('setUetdsResult', res.data)
             setTimeout(function () { commit('setNotification', { status: null, message: null }) }, 5000);
-            
         }
         commit('setBtnDisabled', false)
-        return true
+        return res.data.success
     },
     async cancelNotification({ commit }, payload) {
         commit('setBtnDisabled', true);
@@ -61,7 +59,7 @@ export const actions = {
             
         }
         commit('setBtnDisabled', false)
-        return true
+        return res.data.success
     },
     async printOut({ commit }, payload) {
         commit('setBtnDisabled', true);

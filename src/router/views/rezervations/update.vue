@@ -565,27 +565,33 @@ export default {
           uetdsRefNumber:this.rezervation.uetdsRefNumber
         }
 
-        await this.updateRezervation({id:rezervationForm.id,form:rezervationForm});
+        let result = await this.updateRezervation({id:rezervationForm.id,form:rezervationForm})
         
+        if(result){
 
-        if(this.isFormChange && this.rezervation.uetdsStatus){
-          await this.cancelNotification(this.formVariables.id);
-          await this.sendNotification(this.formVariables.id);
+          if(this.isFormChange && this.rezervation.uetdsStatus){
+          let cancel = await this.cancelNotification(this.formVariables.id);
+            if(cancel){
+              await this.sendNotification(this.formVariables.id);
+            }
           this.isFormChange=false
           //console.log('U-ETDS Guncellemesi Yapıldı')
+          }
+
+          if(!this.rezervation.uetdsStatus && this.formVariables.uetdsNotification){
+            await this.sendNotification(this.formVariables.id);
+            this.isFormChange=false
+            //console.log('bildirildi');
+          }
+
+          if(this.rezervation.uetdsStatus && !this.formVariables.uetdsNotification){
+            await this.cancelNotification(this.formVariables.id);
+            this.isFormChange=false
+            //console.log('Bildirim İptal');
+          }
+
         }
 
-        if(!this.rezervation.uetdsStatus && this.formVariables.uetdsNotification){
-          await this.sendNotification(this.formVariables.id);
-          this.isFormChange=false
-          //console.log('bildirildi');
-        }
-
-        if(this.rezervation.uetdsStatus && !this.formVariables.uetdsNotification){
-          await this.cancelNotification(this.formVariables.id);
-          this.isFormChange=false
-          //console.log('Bildirim İptal');
-        }
         
         
         this.scrollToTop();
@@ -644,6 +650,11 @@ export default {
 
         this.tempTransferType=this.transferTypeArray.find( ({ id }) => id == this.rezervation.transferType );
         this.tempEmployess=this.rezervation.employee
+        this.tempVehicle=this.rezervation.vehicle
+
+        console.log('rezervation--',this.rezervation)
+        console.log('employee--',this.rezervation.employee)
+        console.log('vehicle--',this.rezervation.vehicle)
       }, 50);
 
       this.formVariables.flightNumber=this.rezervation.flightNumber
@@ -654,7 +665,7 @@ export default {
 
       this.formVariables.uetdsNotification=this.rezervation.uetdsStatus
 
-      this.tempVehicle=this.rezervation.vehicle
+     
 
       this.formVariables.note=this.rezervation.note
 
@@ -722,12 +733,14 @@ export default {
         return value.uetdsNotification
       })},
       vehicle:{ required: requiredIf(function (value) {
-        return !value.uetdsNotification
+        return value.uetdsNotification
       })},
       tempPrice:{ required, numeric, maxLength: maxLength(10) },
       uetdsPrice:{ required: requiredIf(function (value) {
         return value.uetdsNotification
-      }),maxLength: maxLength(10),numeric},
+      }),maxLength: maxLength(10),numeric: requiredIf(function (value) {
+        return value.uetdsNotification
+      })},
       directionPrice:{ required: requiredIf(function () {
         return !this.companyOwner
       }),maxLength: maxLength(10),numeric},
@@ -1627,7 +1640,7 @@ export default {
             </div>
           </div>
 
-          <div class="card" v-if="formVariables.uetdsNotification || tempEmployess.length>0">
+          <div class="card" v-if="formVariables.uetdsNotification || tempEmployess.length>0  && tempVehicle==null">
             <div class="card-body">
               <h4 class="card-title mb-3">U-ETDS Şoför ve Araç Plaka Seçimi</h4>
               <div class="row">

@@ -74,7 +74,7 @@ export const actions = {
             setTimeout(function () { commit('setNotification', { status: null, message: null }) }, 5000);
         }
         commit('setBtnDisabled', false)
-        return true
+        return res.data.success
     },
 
     async updateVehicleOfRezervation({ commit }, payload) {

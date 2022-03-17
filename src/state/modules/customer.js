@@ -53,6 +53,7 @@ export const actions = {
             }
         }
         commit('setBtnDisabled', false)
+        return res.data.success
     },
 
     async updateCustomer({ commit }, payload) {
@@ -71,6 +72,7 @@ export const actions = {
             }
         }
         commit('setBtnDisabled', false)
+        return res.data.success
     },
 
     async fetchCustomers({ commit },payload) {
@@ -82,7 +84,7 @@ export const actions = {
         } else {
             commit('setCustomers', res.data)
         }
-
+        return res.data.success
     },
 
     async fetchCustomer({ commit },payload) {
@@ -94,7 +96,7 @@ export const actions = {
         } else {
             commit('setCustomer', res.data.data)
         }
-
+        return res.data.success
     },
 
     async fetchCountries({ commit }) {
@@ -104,7 +106,6 @@ export const actions = {
         } else {
             commit('setCountries', res.data.data)
         }
-
-        return true
+        return res.data.success
     },
 };

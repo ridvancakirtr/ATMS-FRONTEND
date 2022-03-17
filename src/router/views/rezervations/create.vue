@@ -572,9 +572,9 @@ export default {
         }
 
         if(!this.customerIsAvalible){
-          await this.createCustomer(this.formVariables.customer);
+          let result = await this.createCustomer(this.formVariables.customer);
           rezervationForm.customer=this.customer._id;
-          if(this.$store.state.customer.notification.status){
+          if(result){
             //console.log(rezervationForm)
             await this.createRezervation(rezervationForm);
             //console.log(this.$store.state.rezervation.rezervation);
@@ -587,9 +587,9 @@ export default {
         }
 
         if(this.formVariables.uetdsNotification){
-          await this.sendNotification(this.rezervation.departureWay._id);
+          let result = await this.sendNotification(this.rezervation.departureWay._id);
           //console.log('Bildirim Yapıldı Gidiş');
-          if(this.formVariables.isReturn){
+          if(this.formVariables.isReturn && result){
             await this.sendNotification(this.rezervation.returnWay._id);
             //console.log('Bildirim Yapıldı Dönüş');
           }
@@ -660,7 +660,9 @@ export default {
       tempPrice:{ required, numeric, maxLength: maxLength(10) },
       uetdsPrice:{ required: requiredIf(function (value) {
         return value.uetdsNotification
-      }),maxLength: maxLength(10),numeric},
+      }),maxLength: maxLength(10),numeric: requiredIf(function (value) {
+        return value.uetdsNotification
+      })},
       directionPrice:{ required: requiredIf(function () {
         return !this.companyOwner
       }),maxLength: maxLength(10),numeric},
