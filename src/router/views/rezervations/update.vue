@@ -640,7 +640,6 @@ export default {
         this.formVariables.startPoint=this.rezervation.startPoint
         this.formVariables.endPoint=this.rezervation.endPoint
         this.tempPickUpDateTime=new Date(this.rezervation.pickUpDateTime);
-
         this.tempPickUpTime=this.timeAddZero(this.rezervation.pickUpDateTime)
 
         this.tempTransferType=this.transferTypeArray.find( ({ id }) => id == this.rezervation.transferType );
