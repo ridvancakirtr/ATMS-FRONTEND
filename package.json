@@ -29,6 +29,8 @@
     "echarts": "^4.9.0",
     "eslint-loader": "^4.0.2",
     "firebase": "^8.2.5",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.5.23",
     "leaflet": "^1.7.1",
     "metismenujs": "^1.2.1",
     "sass": "^1.30.0",

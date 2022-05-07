@@ -2,6 +2,11 @@
 import Layout from "../../layouts/main";
 import PageHeader from "@/components/page-header";
 import Multiselect from "vue-multiselect";
+import DatePicker from "vue2-datepicker";
+import 'vue2-datepicker/locale/tr';
+import { jsPDF } from "jspdf";
+import 'jspdf-autotable'
+
 import {
   rezervationMethod,
   vehicleMethod,
@@ -17,10 +22,13 @@ export default {
   components: {
     Layout,
     PageHeader,
-    Multiselect
+    Multiselect,
+    DatePicker
   },
   data() {
     return {
+      startDate:null,
+      endDate:null,
       title: "Rezervasyon Listesi",
       items: [
         {
@@ -116,7 +124,9 @@ export default {
       ],
       newVehicles:[],
       newEmployees:[],
-      employessArray:[]
+      employessArray:[],
+      transferDirection:[{id:3,value:"Tümü"},{id:0,value:"Havalimanından Noktaya"},{id:1,value:'Noktadan Havalimanına'},{id:2,value:'Noktadan Noktaya'}],
+      selectedTransferDirection:null
     };
   },
   watch:{
@@ -157,6 +167,9 @@ export default {
     ...rezervationMethod,
     ...vehicleMethod,
     ...employeeMethod,
+    transferDirectionObject(value) {
+      return `${value.value}`
+    },
     vehiclesObject ({plate , brand , model}) {
       return `${plate}-${brand} ${model}`
     },
@@ -261,6 +274,100 @@ export default {
     limitText (count) {
       return `+ ${count}`
     },
+    async searchButton(){
+      console.log(this.selectedTransferDirection);
+      if(this.selectedTransferDirection.id==3){
+        await this.fetchRezervationsSearch({startDate:this.startDate,endDate:this.endDate})
+      }else{
+        await this.fetchRezervationsSearch({startDate:this.startDate,endDate:this.endDate,direction:this.selectedTransferDirection.id})
+      }
+    },
+    async todayButton(){
+      var today = new Date();
+      await this.fetchRezervationsSearch({startDate:today,endDate:today})
+    },
+    async tomorrowButton(){
+      var tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      await this.fetchRezervationsSearch({startDate:tomorrow,endDate:tomorrow})
+    },
+    async allButton(){
+      await this.fetchRezervations({page:this.currentPage,limit:this.perPage,search:""})
+    },
+    getVariant (status) {
+      switch (status) {
+        case 1:
+          return 'danger'
+        case 2:
+          return 'warning'
+        default:
+          return null
+      }
+    },
+    printPDF(){
+      console.log('girdi')
+
+      let temp=[]
+       
+      console.log(this.rezervations);
+
+      this.rezervations.forEach((element) => {
+            let vehicle=null
+            let employess=''
+            let startPoint=this.$options.filters.point(element.startPoint)
+            let endPoint=this.$options.filters.point(element.endPoint)
+
+            if(vehicle!=null){
+              vehicle=element.vehicle.plate+' '+element.vehicle.brand+' '+element.vehicle.model
+            }else{
+              vehicle=null
+            }
+
+            if(element.employee.length>0){
+              console.log('---',element.employee);
+              
+              element.employee.forEach((element_in) => {
+                employess += element_in.name+' '+element_in.surname+' '
+
+              })
+              
+            } else {
+              employess=null
+            }
+
+            console.log(element);
+            let table=[
+              element.pickUpDateTime,
+              element.flightNumber,
+              startPoint,
+              endPoint,
+              element.vehicleType.name,
+              vehicle,
+              employess,
+              element.price.total,
+              element.customer.name+' '+element.customer.surname,
+              element.customer.phone.formattedNumber,
+              element.note
+            ]
+            temp.push(table)
+        }
+      );
+      console.log('temp',temp);
+      const doc = new jsPDF({
+        orientation: "landscape",
+        format: 'a4',
+      });
+
+      
+      doc.text("Hello world!", 10, 10);
+      doc.autoTable({
+        head: [['Tarih', 'Uçuş Numarası', 'Nereden','Nereye','Araç Tipi','Araç','Personel','Fiyat','Adı Soyadı','Telefon','Açıklama']],
+        body: temp,
+        theme: 'grid',
+      })
+      doc.setFont('Lato-Regular', 'normal');
+      doc.save('table.pdf')
+    }
   },
   async mounted() {
     await this.fetchRezervations({page:this.currentPage,limit:this.perPage,search:""})
@@ -268,7 +375,14 @@ export default {
     await this.fetchEmployees({page:1,limit:1000,search:""})
     this.setVehicle();
     this.setEmployee();
-    
+    this.selectedTransferDirection=this.transferDirection[0]
+    var sDate=new Date();
+    var eDate = new Date();
+    eDate.setDate(eDate.getDate() + 7);
+
+    this.startDate=sDate
+    this.endDate=eDate
+
   },
   
 };
@@ -281,17 +395,90 @@ export default {
       <div class="col-12">
         <div class="card">
           <div class="card-body">
-            <h4 class="card-title">Müşteriler</h4>
+            <h4 class="card-title">Tüm Rezervasyonlarınızı Listeleyein veya Filtreleyin</h4>
+            <span>Tüm rezervasyonları tarih aralığı ve transfer yönüne göre listeleyebilirsiniz. Beyaz renkli sıra; Havalimanından Çıkış, Kırmızı renkli sıra; Havalimanına Dönüş, Sarı renkli sıra; Noktadan Noktaya transferleri belirtmektedir.</span>
+            <div class="row">
+
+                <div class="col-md-12 col-lg-2 col-xl-2 col-xxl-2">
+                    <div class="form-group mt-3 mb-0">
+                        <label>Başlangıç Tarihi :</label>
+                        <date-picker :clearable="false" format="DD-MM-YYYY" placeholder="Başlangıç Tarihi" v-model="startDate" :first-day-of-week="1" lang="tr"/>
+                    </div>
+                </div>
+
+                <div class="col-md-12 col-lg-2 col-xl-2 col-xxl-2">
+                    <div class="form-group mt-3 mb-0">
+                        <label>Bitiş Tarihi :</label>
+                        <date-picker :clearable="false" format="DD-MM-YYYY" placeholder="Bitiş Tarihi" v-model="endDate" :first-day-of-week="1" lang="tr"/>
+                    </div>
+                </div>
+
+                <div class="col-md-9 col-lg-2 col-xl-2 col-xxl-3">
+                    <div class="form-group mt-3 mb-0">
+                        <label>Transfer Yönü :</label>
+                        <multiselect 
+                          v-model="selectedTransferDirection"
+                          :options="this.transferDirection"
+                          :custom-label="transferDirectionObject"
+                          :searchable="true"
+                          id="customerGender"
+                          placeholder="Seçiniz"
+                          :allow-empty="false"
+                          selectLabel=""
+                          deselectLabel=""
+                          selectedLabel="">
+                        </multiselect>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-lg-2 col-xl-2 col-xxl-1 align-self-end">
+                    <div class="mt-3 d-grid">
+                        <button type="button" v-on:click="searchButton" class="btn btn-warning w-md">
+                            Ara
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-lg-4 col-xl-4 col-xxl-1 align-self-end">
+                    <div class="mt-3 d-grid">
+                        <button type="button" v-on:click="todayButton" class="btn btn-success w-md">
+                            Bugün
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-lg-4 col-xl-4 col-xxl-1 align-self-end">
+                    <div class="mt-3 d-grid">
+                        <button type="button" v-on:click="tomorrowButton" class="btn btn-success w-md">
+                            Yarın
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-lg-4 col-xl-4 col-xxl-1 align-self-end">
+                    <div class="mt-3 d-grid">
+                        <button type="button" v-on:click="allButton" class="btn btn-success w-md">
+                            Tümü
+                        </button>
+                    </div>
+                </div>
+               
+                <div class="col-md-3 col-lg-4 col-xl-4 col-xxl-1 align-self-end">
+                    <div class="mt-3 d-grid">
+                        <button type="button" v-on:click="printPDF" class="btn btn-light w-md">
+                           <i class="fa fa-print"></i> Yazdır
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="row mt-4">
               <div class="col-sm-12 col-md-6">
                 <div id="tickets-table_length" class="dataTables_length">
                   <label class="d-inline-flex align-items-center">
-                    <b-form-select
-                      class="form-select form-select-sm"
-                      v-model="perPage"
-                      size="sm"
-                      :options="pageOptions"
-                    ></b-form-select> &nbsp;Göster</label>
+                    <b-form-select class="form-select form-select-sm ml-2" v-model="perPage" size="sm" :options="pageOptions">
+                    </b-form-select> &nbsp;
+                    Göster
+                  </label>
                 </div>
               </div>
               <!-- Search -->
@@ -314,90 +501,91 @@ export default {
                 :current-page="1"
                 :filter="filter"
                 :busy="!this.$store.state.rezervation.isLoad"
-                striped hover
+                hover
               >
-              <template #cell(pickUpDateTime)="row">
-                {{ row.value | date }}
-              </template>
-              <template #cell(flightNumber)="row">
-                {{ row.item.flightNumber }}
-              </template>
-              <template #cell(startPoint)="row">
-                {{ row.value | point }}
-              </template>
-              <template #cell(endPoint)="row">
-                {{ row.value | point }}
-              </template>
-              <template #cell(vehicle)="row">
-                <b-row style="width: 250px;margin-right: 10px;">
-                  <multiselect
-                    v-bind:value="row.item.vehicle"
-                    v-on:select="updateVehicleRow(row,$event)" 
-                    v-on:remove="removeVehicleRow(row,$event)"
-                    placeholder="Seçiniz"
-                    selectLabel=""
-                    deselectLabel=""
-                    selectedLabel=""
-                    open-direction="below"
-                    :options="newVehicles" 
-                    :custom-label="vehiclesObject"
-                    :searchable="false">
-                  </multiselect>
-                </b-row>
-              </template>
-              <template #cell(employess)="row">
-                <b-row style="width: 250px;margin-right: 10px;">
-                  <multiselect 
-                      :limit="1"
-                      :limit-text="limitText"
-                      v-bind:value="row.item.employee"
-                      v-on:select="setEmployeeRow(row,$event)" 
-                      :options="employessArray"
-                      :custom-label="employessTypesObject"
-                      :searchable="true"
-                      :multiple="true"
-                      v-on:remove="removeEmployeeRow(row,$event)"
-                      track-by="_id"
-                      open-direction="bottom"
-                      group-values="employees"
-                      group-label="type"
+                <template #cell(pickUpDateTime)="row">
+                  <span v-show="false">{{ row.item._rowVariant=getVariant(row.item.transferDirection) }}</span>
+                  {{ row.value | date }}
+                </template>
+                <template #cell(flightNumber)="row">
+                  {{ row.item.flightNumber }}
+                </template>
+                <template #cell(startPoint)="row">
+                  {{ row.value | point }}
+                </template>
+                <template #cell(endPoint)="row">
+                  {{ row.value | point }}
+                </template>
+                <template #cell(vehicle)="row">
+                  <b-row style="width: 250px;margin-right: 10px;">
+                    <multiselect
+                      v-bind:value="row.item.vehicle"
+                      v-on:select="updateVehicleRow(row,$event)" 
+                      v-on:remove="removeVehicleRow(row,$event)"
                       placeholder="Seçiniz"
                       selectLabel=""
                       deselectLabel=""
-                      selectedLabel="">
-                  </multiselect>
-                </b-row>
-              </template>
-              <template #cell(vehicleType)="row">
-                {{ row.value.name }}
-              </template>
-              <template #cell(price)="row">
-               {{ row.item.price.total | priceFormat }} {{ row.item.priceCurrency | priceCurrency }}
-              </template>
-              <template #cell(customer)="row">
-                {{ row.value.name+' '+row.value.surname }}
-              </template>
-              <template #cell(gender)="row">
-                {{ row.item.customer.gender }}
-              </template>
-              <template #cell(phoneNumber)="row">
-                {{ row.item.customer.phone.formattedNumber }}
-              </template>
-              <template #cell(note)="row">
-                {{ row.item.note }}
-              </template>
-              <template #cell(actions)="row">
-                <b-button-group>
-                  <router-link :to="{ name: 'rezervationsupdate', params: { id: row.item._id }}"><b-button size="sm" variant="outline-secondary"><i class="mdi mdi-account-edit d-block font-size-16"></i></b-button></router-link>
-                  <b-button size="sm" variant="outline-secondary"><i class="mdi mdi-account-details d-block font-size-16"></i></b-button>
-                </b-button-group>
-              </template>
-              <template #table-busy>
-                <div class="text-center text-primary my-2">
-                  <b-spinner class="align-middle"></b-spinner>
-                  <strong>Yükleniyor...</strong>
-                </div>
-              </template>
+                      selectedLabel=""
+                      open-direction="below"
+                      :options="newVehicles" 
+                      :custom-label="vehiclesObject"
+                      :searchable="false">
+                    </multiselect>
+                  </b-row>
+                </template>
+                <template #cell(employess)="row">
+                  <b-row style="width: 250px;margin-right: 10px;">
+                    <multiselect 
+                        :limit="1"
+                        :limit-text="limitText"
+                        v-bind:value="row.item.employee"
+                        v-on:select="setEmployeeRow(row,$event)" 
+                        :options="employessArray"
+                        :custom-label="employessTypesObject"
+                        :searchable="true"
+                        :multiple="true"
+                        v-on:remove="removeEmployeeRow(row,$event)"
+                        track-by="_id"
+                        open-direction="bottom"
+                        group-values="employees"
+                        group-label="type"
+                        placeholder="Seçiniz"
+                        selectLabel=""
+                        deselectLabel=""
+                        selectedLabel="">
+                    </multiselect>
+                  </b-row>
+                </template>
+                <template #cell(vehicleType)="row">
+                  {{ row.value.name }}
+                </template>
+                <template #cell(price)="row">
+                {{ row.item.price.total | priceFormat }} {{ row.item.priceCurrency | priceCurrency }}
+                </template>
+                <template #cell(customer)="row">
+                  {{ row.value.name+' '+row.value.surname }}
+                </template>
+                <template #cell(gender)="row">
+                  {{ row.item.customer.gender }}
+                </template>
+                <template #cell(phoneNumber)="row">
+                  {{ row.item.customer.phone.formattedNumber }}
+                </template>
+                <template #cell(note)="row">
+                  {{ row.item.note }}
+                </template>
+                <template #cell(actions)="row">
+                  <b-button-group>
+                    <router-link :to="{ name: 'rezervationsupdate', params: { id: row.item._id }}"><b-button size="sm" variant="outline-secondary"><i class="mdi mdi-account-edit d-block font-size-16"></i></b-button></router-link>
+                    <b-button size="sm" variant="outline-secondary"><i class="mdi mdi-account-details d-block font-size-16"></i></b-button>
+                  </b-button-group>
+                </template>
+                <template #table-busy>
+                  <div class="text-center text-primary my-2">
+                    <b-spinner class="align-middle"></b-spinner>
+                    <strong>Yükleniyor...</strong>
+                  </div>
+                </template>
               </b-table>
             </div>
             <div class="row">

@@ -147,7 +147,24 @@ export const actions = {
         } else {
             commit('setRezervations', res.data)
         }
+    },
 
+    async fetchRezervationsSearch({ commit }, payload) {
+        commit('setisLoad', false)
+        let res = ''
+        
+        if (payload.direction==0 || payload.direction==1 || payload.direction==2) {
+            res = await accessService.default.get("rezervations?startDate=" + payload.startDate + "&endDate=" + payload.endDate+ "&direction=" + payload.direction);
+        }else{
+            res = await accessService.default.get("rezervations?startDate=" + payload.startDate + "&endDate=" + payload.endDate);
+        }
+        
+        if (res.data.success) {
+            commit('setisLoad', true)
+            commit('setRezervations', res.data)
+        } else {
+            commit('setRezervations', res.data)
+        }
     },
 
     async fetchRezervation({ commit }, payload) {
