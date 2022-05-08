@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const baseURL = 'http://localhost:4848/api/v1/'
+const baseURL = 'https://atms-backend.herokuapp.com/api/v1/'
 export default axios.create({
   baseURL,
   headers: {
